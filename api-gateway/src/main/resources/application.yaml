@@ -10,10 +10,19 @@ logging:
 spring:
   application:
     name: api-gateway
+
   cloud:
     gateway:
       routes:
         - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://auth-service:9020}
+          uri: http://auth-service:9020
           predicates:
             - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway,health
