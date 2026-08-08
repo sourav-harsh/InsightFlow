@@ -2,13 +2,20 @@ server:
   port: 9020
 
 server.servlet.context-path: /auth
-jwt.secretKey: your-secret-key
+jwt.secretKey: fljfkowienfkdjiewof;sjdfopirjwnffsdjkewoirjwjlkfnadskfljsdlkfs
+
+logging:
+  level:
+    com.souravio.InsightFlow.auth_service: DEBUG
+    root: DEBUG
 
 spring:
   application:
     name: auth-service
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/authDB}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: create

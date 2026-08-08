@@ -1,11 +1,6 @@
 server.port: 8080
 jwt:
-  secretKey: your-secret-key
-
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    reactor.netty.http.client: DEBUG
+  secretKey: fljfkowienfkdjiewof;sjdfopirjwnffsdjkewoirjwjlkfnadskfljsdlkfs
 
 spring:
   application:
