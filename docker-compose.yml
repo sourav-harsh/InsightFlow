@@ -53,6 +53,45 @@ services:
     networks:
       - insight-network
 
+  dataset-service:
+    build:
+      context: ./dataset-service
+      dockerfile: Dockerfile
+
+    container_name: dataset-service
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dataset_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+      STORAGE_PATH: /app/uploads
+
+    volumes:
+      - dataset-uploads:/app/uploads
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "-q",
+          "http://localhost:9030/dataset/actuator/health"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - insight-network
+
   postgres:
     image: postgres:17
 
@@ -117,12 +156,10 @@ services:
       - insight-network
 
 volumes:
-
   postgres-data:
-
   rabbitmq-data:
-
   redis-data:
+  dataset-uploads:
 
 networks:
 
