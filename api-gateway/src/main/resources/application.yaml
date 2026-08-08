@@ -15,7 +15,10 @@ spring:
             - Path=/api/v1/auth/**
           filters:
             - StripPrefix=2
-
+        - id: dataset-service
+          uri: ${DATASET_SERVICE_URL:http://dataset-service:9030}
+          predicates:
+            - Path=/api/v1/datasets/**
 management:
   endpoints:
     web:
