@@ -129,6 +129,10 @@ public class DatasetProcessingConsumer {
 
             processDataset(event);
 
+            processingJobService.markCompleted(
+                    event.getJobId()
+            );
+
             log.info(
                     "Dataset processing succeeded. jobId={}",
                     event.getJobId()
@@ -174,9 +178,9 @@ public class DatasetProcessingConsumer {
                 event.getStoragePath()
         );
 
-        throw new RuntimeException(
-                "TEST PROCESSING FAILURE"
-        );
+//        throw new RuntimeException(
+//                "TEST PROCESSING FAILURE"
+//        );
     }
 
     private void handleFailure(
@@ -195,6 +199,11 @@ public class DatasetProcessingConsumer {
             );
 
             sendToDeadLetterQueue(event);
+
+            processingJobService.markFailed(
+                    event.getJobId(),
+                    "Maximum processing attempts exceeded"
+            );
 
             channel.basicAck(
                     deliveryTag,

@@ -31,15 +31,76 @@ public class ProcessingJobService {
             return false;
         }
 
-        if (job.getStatus() == JobStatus.PROCESSING) {
-            return true;
+        if (job.getStatus() == JobStatus.FAILED) {
+            return false;
         }
 
         job.setStatus(JobStatus.PROCESSING);
-        job.setStartedAt(Instant.now());
+
+        job.setStartedAt(
+                Instant.now()
+        );
+
+        int currentAttempts =
+                job.getAttemptCount() == null
+                        ? 0
+                        : job.getAttemptCount();
+
+        job.setAttemptCount(
+                currentAttempts + 1
+        );
 
         jobRepository.save(job);
 
         return true;
+    }
+
+    @Transactional
+    public void markCompleted(UUID jobId) {
+
+        ProcessingJob job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "Processing job not found: " + jobId
+                                )
+                        );
+
+        job.setStatus(JobStatus.COMPLETED);
+
+        job.setCompletedAt(
+                Instant.now()
+        );
+
+        job.setErrorMessage(null);
+
+        jobRepository.save(job);
+    }
+
+    @Transactional
+    public void markFailed(
+            UUID jobId,
+            String errorMessage
+    ) {
+
+        ProcessingJob job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "Processing job not found: " + jobId
+                                )
+                        );
+
+        job.setStatus(JobStatus.FAILED);
+
+        job.setFailedAt(
+                Instant.now()
+        );
+
+        job.setErrorMessage(
+                errorMessage
+        );
+
+        jobRepository.save(job);
     }
 }
