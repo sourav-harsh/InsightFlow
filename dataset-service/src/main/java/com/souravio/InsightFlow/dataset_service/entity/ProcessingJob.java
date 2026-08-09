@@ -42,6 +42,8 @@ public class ProcessingJob {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    private Instant failedAt;
+
     @Column(name = "error_message")
     private String errorMessage;
 

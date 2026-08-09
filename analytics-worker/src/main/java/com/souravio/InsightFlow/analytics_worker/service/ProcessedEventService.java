@@ -2,44 +2,55 @@ package com.souravio.InsightFlow.analytics_worker.service;
 
 import com.souravio.InsightFlow.analytics_worker.entity.ProcessedEvent;
 import com.souravio.InsightFlow.analytics_worker.repository.ProcessedEventRepository;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.UUID;
-
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ProcessedEventService {
 
-    private final ProcessedEventRepository processedEventRepository;
+  private final ProcessedEventRepository processedEventRepository;
 
-    @Transactional
-    public boolean claimEvent(
-            UUID eventId,
-            UUID jobId,
-            int attempt
-    ) {
+  @Transactional
+  public boolean claimEvent(
+          UUID eventId,
+          UUID jobId,
+          int attempt
+  ) {
 
-        try {
+    if (processedEventRepository.existsByEventId(eventId)) {
 
-            ProcessedEvent event =
-                    ProcessedEvent.builder()
-                            .eventId(eventId)
-                            .jobId(jobId)
-                            .attempt(attempt)
-                            .processedAt(Instant.now())
-                            .build();
+      log.info(
+              "Event already processed. eventId={}, jobId={}",
+              eventId,
+              jobId
+      );
 
-            processedEventRepository.saveAndFlush(event);
-
-            return true;
-
-        } catch (DataIntegrityViolationException exception) {
-
-            return false;
-        }
+      return false;
     }
+
+    ProcessedEvent event =
+            ProcessedEvent.builder()
+                    .eventId(eventId)
+                    .jobId(jobId)
+                    .attempt(attempt)
+                    .processedAt(Instant.now())
+                    .build();
+
+    processedEventRepository.save(event);
+
+    log.info(
+            "Event claimed successfully. eventId={}, jobId={}, attempt={}",
+            eventId,
+            jobId,
+            attempt
+    );
+
+    return true;
+  }
 }

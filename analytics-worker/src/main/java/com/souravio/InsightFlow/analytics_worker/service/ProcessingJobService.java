@@ -42,11 +42,11 @@ public class ProcessingJobService {
         );
 
         int currentAttempts =
-                job.getAttemptCount() == null
+                job.getRetryCount() == null
                         ? 0
-                        : job.getAttemptCount();
+                        : job.getRetryCount();
 
-        job.setAttemptCount(
+        job.setRetryCount(
                 currentAttempts + 1
         );
 
