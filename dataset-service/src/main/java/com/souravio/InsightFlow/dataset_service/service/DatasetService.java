@@ -1,18 +1,23 @@
 package com.souravio.InsightFlow.dataset_service.service;
 
+import com.souravio.InsightFlow.dataset_service.dto.event.DatasetProcessingRequestedEvent;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
 import com.souravio.InsightFlow.dataset_service.entity.Dataset;
+import com.souravio.InsightFlow.dataset_service.entity.OutboxEvent;
 import com.souravio.InsightFlow.dataset_service.entity.ProcessingJob;
 import com.souravio.InsightFlow.dataset_service.enums.DatasetStatus;
 import com.souravio.InsightFlow.dataset_service.enums.JobStatus;
+import com.souravio.InsightFlow.dataset_service.enums.OutboxStatus;
 import com.souravio.InsightFlow.dataset_service.parser.CsvFileParser;
 import com.souravio.InsightFlow.dataset_service.parser.CsvParseResult;
 import com.souravio.InsightFlow.dataset_service.repository.DatasetRepository;
+import com.souravio.InsightFlow.dataset_service.repository.OutboxEventRepository;
 import com.souravio.InsightFlow.dataset_service.repository.ProcessingJobRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -27,6 +32,8 @@ public class DatasetService {
     private final FileStorageService fileStorageService;
     private final FileChecksumService checksumService;
     private final CsvFileParser csvFileParser;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public UploadDatasetResponse upload(
@@ -120,7 +127,44 @@ public class DatasetService {
         ProcessingJob savedJob =
                 jobRepository.save(job);
 
-        // 9. Return response
+
+        // 9. Creating an event to be published
+        DatasetProcessingRequestedEvent event =
+                DatasetProcessingRequestedEvent.builder()
+                        .eventId(UUID.randomUUID())
+                        .datasetId(savedDataset.getId())
+                        .jobId(savedJob.getId())
+                        .storagePath(
+                                savedDataset.getStoragePath()
+                        )
+                        .fileType(
+                                savedDataset.getFileType()
+                        )
+                        .build();
+
+        // 10. Serialize the event
+        String payload =
+                objectMapper.writeValueAsString(event);
+
+        // 11. Create outbox event
+        OutboxEvent outboxEvent =
+                OutboxEvent.builder()
+                        .id(event.getEventId())
+                        .aggregateType("DATASET")
+                        .aggregateId(savedDataset.getId())
+                        .eventType(
+                                "DatasetProcessingRequested"
+                        )
+                        .payload(payload)
+                        .status(OutboxStatus.PENDING)
+                        .createdAt(Instant.now())
+                        .retryCount(0)
+                        .build();
+
+        // 12. Save outbox event
+        outboxEventRepository.save(outboxEvent);
+
+        // 13. Return response
         return UploadDatasetResponse.builder()
                 .datasetId(
                         savedDataset.getId()

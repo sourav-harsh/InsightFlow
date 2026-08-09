@@ -65,6 +65,11 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
 
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
       STORAGE_PATH: /app/uploads
 
     volumes:
@@ -73,21 +78,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_started
 
     restart: unless-stopped
-
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--spider",
-          "-q",
-          "http://localhost:9030/dataset/actuator/health"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
     networks:
       - insight-network
@@ -123,7 +117,6 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management
-
     container_name: rabbitmq
 
     ports:
