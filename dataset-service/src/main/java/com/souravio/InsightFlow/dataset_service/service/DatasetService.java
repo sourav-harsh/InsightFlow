@@ -140,6 +140,8 @@ public class DatasetService {
                         .fileType(
                                 savedDataset.getFileType()
                         )
+                        .retryCount(0)
+                        .attempt(1)
                         .build();
 
         // 10. Serialize the event

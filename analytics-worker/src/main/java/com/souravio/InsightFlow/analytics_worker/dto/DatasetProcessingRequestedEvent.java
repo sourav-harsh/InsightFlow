@@ -1,4 +1,4 @@
-package com.souravio.InsightFlow.dataset_service.dto.event;
+package com.souravio.InsightFlow.analytics_worker.dto;
 
 import lombok.*;
 
