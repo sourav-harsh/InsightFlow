@@ -66,25 +66,11 @@ public class DatasetProcessingConsumer {
     }
 
     // ==========================================
-    // 2. Claim Processing Job
-    // ==========================================
-
-    boolean shouldProcess = processingJobService.markProcessing(event.getJobId());
-
-    if (!shouldProcess) {
-
-      log.info("Job cannot be processed. jobId={}", event.getJobId());
-
-      channel.basicAck(deliveryTag, false);
-
-      return;
-    }
-
-    // ==========================================
-    // 3. Process Dataset
+    // 3.Making job processing and Process Dataset
     // ==========================================
 
     try {
+      processingJobService.markProcessing(event.getJobId());
 
       log.info(
           "Starting processing. jobId={}, attempt={}, retryCount={}",
@@ -146,56 +132,62 @@ public class DatasetProcessingConsumer {
   }
 
   private void handleFailure(
-      DatasetProcessingRequestedEvent event, int attempt, Channel channel, long deliveryTag)
-      throws Exception {
+          DatasetProcessingRequestedEvent event,
+          int attempt,
+          Channel channel,
+          long deliveryTag
+  ) throws Exception {
 
     if (attempt >= MAX_ATTEMPTS) {
 
-      log.error("Maximum retry count reached. jobId={}, retryCount={}", event.getJobId(), attempt);
+      log.error(
+              "Maximum retry attempts reached. jobId={}, attempt={}",
+              event.getJobId(),
+              attempt
+      );
 
       sendToDeadLetterQueue(event);
 
-      processingJobService.markFailed(event.getJobId(), "Maximum processing attempts exceeded");
+      processingJobService.markFailed(
+              event.getJobId(),
+              "Maximum processing attempts exceeded"
+      );
 
+      // ACK the ORIGINAL message because it has
+      // been successfully handled by moving it to DLQ.
       channel.basicAck(deliveryTag, false);
 
       return;
     }
 
-    // ==========================================
-    // Create NEW retry event
-    // ==========================================
-
     DatasetProcessingRequestedEvent retryEvent =
-        DatasetProcessingRequestedEvent.builder()
-            .eventId(UUID.randomUUID())
-            .datasetId(event.getDatasetId())
-            .jobId(event.getJobId())
-            .storagePath(event.getStoragePath())
-            .fileType(event.getFileType())
-            .retryCount(attempt + 1)
-            .attempt(event.getAttempt() == null ? 2 : event.getAttempt() + 1)
-            .build();
+            DatasetProcessingRequestedEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .datasetId(event.getDatasetId())
+                    .jobId(event.getJobId())
+                    .storagePath(event.getStoragePath())
+                    .fileType(event.getFileType())
+                    .retryCount(attempt)
+                    .attempt(attempt + 1)
+                    .build();
 
-    String retryMessage = objectMapper.writeValueAsString(retryEvent);
-
-    // ==========================================
-    // Publish to Retry Exchange
-    // ==========================================
+    String retryMessage =
+            objectMapper.writeValueAsString(retryEvent);
 
     rabbitTemplate.convertAndSend(
-        RabbitMQConfig.RETRY_EXCHANGE, RabbitMQConfig.RETRY_ROUTING_KEY, retryMessage);
+            RabbitMQConfig.RETRY_EXCHANGE,
+            RabbitMQConfig.RETRY_ROUTING_KEY,
+            retryMessage
+    );
 
     log.warn(
-        "Message sent to retry queue. jobId={}, retryCount={}, attempt={}",
-        retryEvent.getJobId(),
-        retryEvent.getRetryCount(),
-        retryEvent.getAttempt());
+            "Message sent to retry queue. jobId={}, retryCount={}, attempt={}",
+            retryEvent.getJobId(),
+            retryEvent.getRetryCount(),
+            retryEvent.getAttempt()
+    );
 
-    // ==========================================
-    // ACK original message
-    // ==========================================
-
+    // ACK ORIGINAL message.
     channel.basicAck(deliveryTag, false);
   }
 

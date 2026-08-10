@@ -17,32 +17,26 @@ public class ProcessedEventService {
   private final ProcessedEventRepository processedEventRepository;
 
   @Transactional
-  public boolean claimEvent(
-          UUID eventId,
-          UUID jobId,
-          int attempt
-  ) {
+  public boolean claimEvent(UUID eventId, UUID jobId, int attempt) {
 
-    if (processedEventRepository.existsByEventId(eventId)) {
+    int inserted = processedEventRepository.insertIfNotExists(
+            eventId,
+            jobId,
+            attempt,
+            Instant.now()
+    );
+
+    if (inserted == 0) {
 
       log.info(
-              "Event already processed. eventId={}, jobId={}",
+              "Event already processed. eventId={}, jobId={}, attempt={}",
               eventId,
-              jobId
+              jobId,
+              attempt
       );
 
       return false;
     }
-
-    ProcessedEvent event =
-            ProcessedEvent.builder()
-                    .eventId(eventId)
-                    .jobId(jobId)
-                    .attempt(attempt)
-                    .processedAt(Instant.now())
-                    .build();
-
-    processedEventRepository.save(event);
 
     log.info(
             "Event claimed successfully. eventId={}, jobId={}, attempt={}",

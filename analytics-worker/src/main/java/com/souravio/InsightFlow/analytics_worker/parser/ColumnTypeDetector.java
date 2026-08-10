@@ -5,39 +5,94 @@ public class ColumnTypeDetector {
     private boolean integer = true;
     private boolean decimal = true;
     private boolean booleanValue = true;
+    private double min = Double.MAX_VALUE;
+    private double max = -Double.MAX_VALUE;
+    private double sum = 0;
+    private long numericCount = 0;
+    private long missingCount = 0;
 
     public void observe(String value) {
 
         String trimmed = value.trim();
 
-        if (!isInteger(trimmed)) {
+        try {
+            Long.parseLong(trimmed);
+
+            updateNumericStats(Double.parseDouble(trimmed));
+            return;
+
+        } catch (NumberFormatException ignored) {
+        }
+
+        try {
+            Double.parseDouble(trimmed);
+
             integer = false;
+            updateNumericStats(Double.parseDouble(trimmed));
+            return;
+
+        } catch (NumberFormatException ignored) {
         }
 
-        if (!isDecimal(trimmed)) {
-            decimal = false;
-        }
+        integer = false;
+        decimal = false;
+    }
 
-        if (!isBoolean(trimmed)) {
-            booleanValue = false;
-        }
+    private void updateNumericStats(double value) {
+
+        min = Math.min(min, value);
+        max = Math.max(max, value);
+
+        sum += value;
+        numericCount++;
     }
 
     public String getType() {
 
-        if (integer) {
+        if (integer && numericCount > 0) {
             return "INTEGER";
         }
 
-        if (decimal) {
+        if (decimal && numericCount > 0) {
             return "DECIMAL";
         }
 
-        if (booleanValue) {
-            return "BOOLEAN";
+        return "STRING";
+    }
+
+    public long getMissingCount() {
+        return 0;
+    }
+
+    public Double getMin() {
+
+        if (numericCount == 0) {
+            return null;
         }
 
-        return "STRING";
+        return min;
+    }
+
+    public Double getMax() {
+
+        if (numericCount == 0) {
+            return null;
+        }
+
+        return max;
+    }
+
+    public Double getAverage() {
+
+        if (numericCount == 0) {
+            return null;
+        }
+
+        return sum / numericCount;
+    }
+
+    public void incrementMissingCount() {
+        missingCount++;
     }
 
     private boolean isInteger(String value) {

@@ -14,9 +14,7 @@ public class CsvParseResult {
 
     private int columnCount;
 
-    private List<String> columnNames;
-
     private long missingValueCount;
 
-    private Map<String, String> columnTypes;
+    private Map<String, ColumnAnalytics> columns;
 }

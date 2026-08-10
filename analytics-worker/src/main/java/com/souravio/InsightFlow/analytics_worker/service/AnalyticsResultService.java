@@ -6,6 +6,7 @@ import com.souravio.InsightFlow.analytics_worker.repository.AnalyticsResultRepos
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import java.util.UUID;
 public class AnalyticsResultService {
 
     private final AnalyticsResultRepository analyticsResultRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public AnalyticsResult saveResult(
@@ -22,15 +24,29 @@ public class AnalyticsResultService {
             CsvParseResult parseResult
     ) {
 
-        AnalyticsResult result = AnalyticsResult.builder()
-                .datasetId(datasetId)
-                .rowCount(parseResult.getRowCount())
-                .columnCount(parseResult.getColumnCount())
-                .missingValueCount(parseResult.getMissingValueCount())
-                .createdAt(LocalDateTime.now())
-                .build();
+        try {
 
-        return analyticsResultRepository.save(result);
+            String statisticsJson =
+                    objectMapper.writeValueAsString(parseResult);
+
+            AnalyticsResult result = AnalyticsResult.builder()
+                    .datasetId(datasetId)
+                    .rowCount(parseResult.getRowCount())
+                    .columnCount(parseResult.getColumnCount())
+                    .missingValueCount(parseResult.getMissingValueCount())
+                    .statisticsJson(parseResult.getColumns())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            return analyticsResultRepository.save(result);
+
+        } catch (Exception exception) {
+
+            throw new RuntimeException(
+                    "Failed to serialize analytics result",
+                    exception
+            );
+        }
     }
 
     @Transactional(readOnly = true)
