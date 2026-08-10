@@ -40,16 +40,16 @@ public class CsvParser {
       }
 
       long rowCount = 0;
-      long totalMissingValues = 0;
 
       Map<String, ColumnTypeDetector> detectors = new LinkedHashMap<>();
 
       // Create detector for every column
       for (String header : headers) {
-        detectors.put(header, new ColumnTypeDetector());
+
+        detectors.put(header, new ColumnTypeDetector(header));
       }
 
-      // Process every row
+      // Process rows
       for (CSVRecord record : parser) {
 
         rowCount++;
@@ -58,45 +58,54 @@ public class CsvParser {
 
           String value = record.isMapped(header) ? record.get(header) : null;
 
-          // Missing value
-          if (value == null || value.trim().isEmpty()) {
-
-            detectors.get(header).incrementMissingCount();
-
-            totalMissingValues++;
-
-            continue;
-          }
-
-          // Process value
           detectors.get(header).observe(value);
         }
       }
 
-      // Build column statistics
-      Map<String, ColumnAnalytics> columns = new LinkedHashMap<>();
+      // Build column analytics
+      Map<String, ColumnAnalytics> columnAnalytics = new LinkedHashMap<>();
+
+      long totalMissingValues = 0;
+      long totalInvalidValues = 0;
 
       for (Map.Entry<String, ColumnTypeDetector> entry : detectors.entrySet()) {
 
         ColumnTypeDetector detector = entry.getValue();
 
-        ColumnAnalytics statistics =
-            ColumnAnalytics.builder()
-                .type(detector.getType())
-                .missingCount(detector.getMissingCount())
-                .min(detector.getMin())
-                .max(detector.getMax())
-                .average(detector.getAverage())
-                .build();
+        ColumnAnalytics analytics = detector.getAnalytics();
 
-        columns.put(entry.getKey(), statistics);
+        columnAnalytics.put(entry.getKey(), analytics);
+
+        totalMissingValues += detector.getMissingCount();
+
+        totalInvalidValues += detector.getInvalidCount();
+      }
+
+      // -------------------------
+      // Dataset-level quality
+      // -------------------------
+
+      long totalCells = rowCount * headers.size();
+
+      long validCells = totalCells - totalMissingValues - totalInvalidValues;
+
+      double qualityScore = 100.0;
+
+      if (totalCells > 0) {
+
+        qualityScore = ((double) validCells / totalCells) * 100.0;
+
+        qualityScore = Math.round(qualityScore * 100.0) / 100.0;
       }
 
       return CsvParseResult.builder()
           .rowCount(rowCount)
           .columnCount(headers.size())
+          .columnNames(headers)
           .missingValueCount(totalMissingValues)
-          .columns(columns)
+          .invalidValueCount(totalInvalidValues)
+          .qualityScore(qualityScore)
+          .columnAnalytics(columnAnalytics)
           .build();
     }
   }

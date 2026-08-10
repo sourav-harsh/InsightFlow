@@ -9,12 +9,17 @@ import java.util.Map;
 @Getter
 @Builder
 public class CsvParseResult {
-
     private long rowCount;
 
     private int columnCount;
 
+    private List<String> columnNames;
+
     private long missingValueCount;
 
-    private Map<String, ColumnAnalytics> columns;
+    private long invalidValueCount;
+
+    private double qualityScore;
+
+    private Map<String, ColumnAnalytics> columnAnalytics;
 }
