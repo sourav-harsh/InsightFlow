@@ -13,6 +13,9 @@ spring:
     show-sql: false
 
   rabbitmq:
+    listener:
+      simple:
+        acknowledge-mode: manual
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}

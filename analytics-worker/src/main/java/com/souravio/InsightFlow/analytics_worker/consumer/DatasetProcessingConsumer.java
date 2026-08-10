@@ -1,10 +1,14 @@
 package com.souravio.InsightFlow.analytics_worker.consumer;
 
+import com.rabbitmq.client.Channel;
 import com.souravio.InsightFlow.analytics_worker.config.RabbitMQConfig;
 import com.souravio.InsightFlow.analytics_worker.dto.DatasetProcessingRequestedEvent;
+import com.souravio.InsightFlow.analytics_worker.parser.CsvParseResult;
+import com.souravio.InsightFlow.analytics_worker.service.AnalyticsResultService;
+import com.souravio.InsightFlow.analytics_worker.service.CsvProcessingService;
 import com.souravio.InsightFlow.analytics_worker.service.ProcessedEventService;
 import com.souravio.InsightFlow.analytics_worker.service.ProcessingJobService;
-import com.rabbitmq.client.Channel;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -14,276 +18,199 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.UUID;
-
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class DatasetProcessingConsumer {
 
-    private static final int MAX_ATTEMPTS = 3;
+  private static final int MAX_ATTEMPTS = 3;
+  private final ObjectMapper objectMapper;
+  private final ProcessingJobService processingJobService;
+  private final ProcessedEventService processedEventService;
+  private final CsvProcessingService csvProcessingService;
+  private final AnalyticsResultService analyticsResultService;
+  private final RabbitTemplate rabbitTemplate;
 
-    private final ObjectMapper objectMapper;
+  @RabbitListener(queues = RabbitMQConfig.MAIN_QUEUE)
+  public void consume(
+      String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag)
+      throws Exception {
 
-    private final ProcessingJobService processingJobService;
+    log.info("Received dataset processing event: {}", message);
 
-    private final ProcessedEventService processedEventService;
+    DatasetProcessingRequestedEvent event =
+        objectMapper.readValue(message, DatasetProcessingRequestedEvent.class);
 
-    private final RabbitTemplate rabbitTemplate;
+    int attempt = event.getAttempt() == null ? 1 : event.getAttempt();
 
-    @RabbitListener(
-            queues = RabbitMQConfig.MAIN_QUEUE
-    )
-    public void consume(
-            String message,
-            Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG)
-            long deliveryTag
-    ) throws Exception {
+    int retryCount = event.getRetryCount() == null ? 0 : event.getRetryCount();
 
-        log.info(
-                "Received dataset processing event: {}",
-                message
-        );
+    // ==========================================
+    // 1. Claim Event
+    // ==========================================
 
-        DatasetProcessingRequestedEvent event =
-                objectMapper.readValue(
-                        message,
-                        DatasetProcessingRequestedEvent.class
-                );
+    boolean claimed =
+        processedEventService.claimEvent(event.getEventId(), event.getJobId(), attempt);
 
-        int attempt =
-                event.getAttempt() == null
-                        ? 1
-                        : event.getAttempt();
+    if (!claimed) {
 
-        int retryCount =
-                event.getRetryCount() == null
-                        ? 0
-                        : event.getRetryCount();
+      log.info(
+          "Duplicate event detected. eventId={}, jobId={}, attempt={}",
+          event.getEventId(),
+          event.getJobId(),
+          attempt);
 
-        // ==========================================
-        // 1. Claim Event
-        // ==========================================
+      channel.basicAck(deliveryTag, false);
 
-        boolean claimed =
-                processedEventService.claimEvent(
-                        event.getEventId(),
-                        event.getJobId(),
-                        attempt
-                );
-
-        if (!claimed) {
-
-            log.info(
-                    "Duplicate event detected. eventId={}, jobId={}, attempt={}",
-                    event.getEventId(),
-                    event.getJobId(),
-                    attempt
-            );
-
-            channel.basicAck(
-                    deliveryTag,
-                    false
-            );
-
-            return;
-        }
-
-        // ==========================================
-        // 2. Claim Processing Job
-        // ==========================================
-
-        boolean shouldProcess =
-                processingJobService.markProcessing(
-                        event.getJobId()
-                );
-
-        if (!shouldProcess) {
-
-            log.info(
-                    "Job cannot be processed. jobId={}",
-                    event.getJobId()
-            );
-
-            channel.basicAck(
-                    deliveryTag,
-                    false
-            );
-
-            return;
-        }
-
-        // ==========================================
-        // 3. Process Dataset
-        // ==========================================
-
-        try {
-
-            log.info(
-                    "Starting processing. jobId={}, attempt={}, retryCount={}",
-                    event.getJobId(),
-                    attempt,
-                    retryCount
-            );
-
-            processDataset(event);
-
-            processingJobService.markCompleted(
-                    event.getJobId()
-            );
-
-            log.info(
-                    "Dataset processing succeeded. jobId={}",
-                    event.getJobId()
-            );
-
-            channel.basicAck(
-                    deliveryTag,
-                    false
-            );
-
-        } catch (Exception exception) {
-
-            log.error(
-                    "Dataset processing failed. jobId={}, attempt={}, retryCount={}",
-                    event.getJobId(),
-                    attempt,
-                    retryCount,
-                    exception
-            );
-
-            handleFailure(
-                    event,
-                    attempt,
-                    channel,
-                    deliveryTag
-            );
-        }
+      return;
     }
 
-    private void processDataset(
-            DatasetProcessingRequestedEvent event
-    ) {
+    // ==========================================
+    // 2. Claim Processing Job
+    // ==========================================
 
-        /*
-         * TEMPORARY FAILURE TEST
-         *
-         * We'll replace this with actual
-         * CSV processing later.
-         */
+    boolean shouldProcess = processingJobService.markProcessing(event.getJobId());
 
-        log.info(
-                "Processing file: {}",
-                event.getStoragePath()
-        );
+    if (!shouldProcess) {
 
-//        throw new RuntimeException(
-//                "TEST PROCESSING FAILURE"
-//        );
+      log.info("Job cannot be processed. jobId={}", event.getJobId());
+
+      channel.basicAck(deliveryTag, false);
+
+      return;
     }
 
-    private void handleFailure(
-            DatasetProcessingRequestedEvent event,
-            int attempt,
-            Channel channel,
-            long deliveryTag
-    ) throws Exception {
+    // ==========================================
+    // 3. Process Dataset
+    // ==========================================
 
-        if (attempt >= MAX_ATTEMPTS) {
+    try {
 
-            log.error(
-                    "Maximum retry count reached. jobId={}, retryCount={}",
-                    event.getJobId(),
-                    attempt
-            );
+      log.info(
+          "Starting processing. jobId={}, attempt={}, retryCount={}",
+          event.getJobId(),
+          attempt,
+          retryCount);
 
-            sendToDeadLetterQueue(event);
+      processDataset(event);
 
-            processingJobService.markFailed(
-                    event.getJobId(),
-                    "Maximum processing attempts exceeded"
-            );
+      processingJobService.markCompleted(event.getJobId());
 
-            channel.basicAck(
-                    deliveryTag,
-                    false
-            );
+      log.info("Dataset processing succeeded. jobId={}", event.getJobId());
 
-            return;
-        }
+      channel.basicAck(deliveryTag, false);
 
-        // ==========================================
-        // Create NEW retry event
-        // ==========================================
+      log.info(
+          "Dataset processing completed. datasetId={}, jobId={}",
+          event.getDatasetId(),
+          event.getJobId());
 
-        DatasetProcessingRequestedEvent retryEvent =
-                DatasetProcessingRequestedEvent.builder()
-                        .eventId(UUID.randomUUID())
-                        .datasetId(event.getDatasetId())
-                        .jobId(event.getJobId())
-                        .storagePath(event.getStoragePath())
-                        .fileType(event.getFileType())
-                        .retryCount(attempt + 1)
-                        .attempt(
-                                event.getAttempt() == null
-                                        ? 2
-                                        : event.getAttempt() + 1
-                        )
-                        .build();
+    } catch (Exception exception) {
 
-        String retryMessage =
-                objectMapper.writeValueAsString(
-                        retryEvent
-                );
+      log.error(
+          "Dataset processing failed. jobId={}, attempt={}, retryCount={}",
+          event.getJobId(),
+          attempt,
+          retryCount,
+          exception);
 
-        // ==========================================
-        // Publish to Retry Exchange
-        // ==========================================
+      handleFailure(event, attempt, channel, deliveryTag);
+    }
+  }
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.RETRY_EXCHANGE,
-                RabbitMQConfig.RETRY_ROUTING_KEY,
-                retryMessage
-        );
+  private void processDataset(DatasetProcessingRequestedEvent event) {
 
-        log.warn(
-                "Message sent to retry queue. jobId={}, retryCount={}, attempt={}",
-                retryEvent.getJobId(),
-                retryEvent.getRetryCount(),
-                retryEvent.getAttempt()
-        );
+    try {
 
-        // ==========================================
-        // ACK original message
-        // ==========================================
+      log.info("Processing file: {}", event.getStoragePath());
+      // 3. Parse CSV
+      CsvParseResult result = csvProcessingService.process(event.getStoragePath());
 
-        channel.basicAck(
-                deliveryTag,
-                false
-        );
+
+      log.info(
+              "CSV processed successfully. datasetId={}, rows={}, columns={}, missingValues={}",
+              event.getDatasetId(),
+              result.getRowCount(),
+              result.getColumnCount(),
+              result.getMissingValueCount()
+      );
+
+      // 4. Save analytics result
+      analyticsResultService.saveResult(
+              event.getDatasetId(),
+              result
+      );
+    } catch (Exception exception) {
+      throw new RuntimeException("Failed to process dataset", exception);
+    }
+  }
+
+  private void handleFailure(
+      DatasetProcessingRequestedEvent event, int attempt, Channel channel, long deliveryTag)
+      throws Exception {
+
+    if (attempt >= MAX_ATTEMPTS) {
+
+      log.error("Maximum retry count reached. jobId={}, retryCount={}", event.getJobId(), attempt);
+
+      sendToDeadLetterQueue(event);
+
+      processingJobService.markFailed(event.getJobId(), "Maximum processing attempts exceeded");
+
+      channel.basicAck(deliveryTag, false);
+
+      return;
     }
 
+    // ==========================================
+    // Create NEW retry event
+    // ==========================================
 
-    private void sendToDeadLetterQueue(
-            DatasetProcessingRequestedEvent event
-    ) throws Exception {
+    DatasetProcessingRequestedEvent retryEvent =
+        DatasetProcessingRequestedEvent.builder()
+            .eventId(UUID.randomUUID())
+            .datasetId(event.getDatasetId())
+            .jobId(event.getJobId())
+            .storagePath(event.getStoragePath())
+            .fileType(event.getFileType())
+            .retryCount(attempt + 1)
+            .attempt(event.getAttempt() == null ? 2 : event.getAttempt() + 1)
+            .build();
 
-        String dlqMessage =
-                objectMapper.writeValueAsString(event);
+    String retryMessage = objectMapper.writeValueAsString(retryEvent);
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.DLQ_EXCHANGE,
-                RabbitMQConfig.DLQ_ROUTING_KEY,
-                dlqMessage
-        );
+    // ==========================================
+    // Publish to Retry Exchange
+    // ==========================================
 
-        log.error(
-                "Message moved to DLQ. jobId={}, eventId={}, retryCount={}, attempt={}",
-                event.getJobId(),
-                event.getEventId(),
-                event.getRetryCount(),
-                event.getAttempt()
-        );
-    }
+    rabbitTemplate.convertAndSend(
+        RabbitMQConfig.RETRY_EXCHANGE, RabbitMQConfig.RETRY_ROUTING_KEY, retryMessage);
+
+    log.warn(
+        "Message sent to retry queue. jobId={}, retryCount={}, attempt={}",
+        retryEvent.getJobId(),
+        retryEvent.getRetryCount(),
+        retryEvent.getAttempt());
+
+    // ==========================================
+    // ACK original message
+    // ==========================================
+
+    channel.basicAck(deliveryTag, false);
+  }
+
+  private void sendToDeadLetterQueue(DatasetProcessingRequestedEvent event) throws Exception {
+
+    String dlqMessage = objectMapper.writeValueAsString(event);
+
+    rabbitTemplate.convertAndSend(
+        RabbitMQConfig.DLQ_EXCHANGE, RabbitMQConfig.DLQ_ROUTING_KEY, dlqMessage);
+
+    log.error(
+        "Message moved to DLQ. jobId={}, eventId={}, retryCount={}, attempt={}",
+        event.getJobId(),
+        event.getEventId(),
+        event.getRetryCount(),
+        event.getAttempt());
+  }
 }
