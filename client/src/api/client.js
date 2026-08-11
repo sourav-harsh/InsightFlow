@@ -11,7 +11,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 // Hard-coded bearer token for now (replace with a real auth flow later).
 export const AUTH_TOKEN =
   import.meta.env.VITE_API_TOKEN ||
-  "eyJhbGciOiJIUzI1NiJ9.hardcoded-dev-token";
+  "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIzN2M4NWJhYS03ZDkwLTRiM2ItOGUyMS1iN2Q4Njc2OThjNjMiLCJuYW1lIjoiU291cmF2IEt1bWFyIiwiZW1haWwiOiJzNDVAZ21haWwuY29tIiwiaWF0IjoxNzg2NDY5MzkwLCJleHAiOjE3ODY0NzUzOTB9.3dxY0kKnbOtJyPQK66N8BbIjvjIV2IwBDaWlgJ8oRgQJ8qt8kVEGLfocG4zxWM4O";
 
 const USE_MOCK = String(import.meta.env.VITE_USE_MOCK ?? "true") === "true";
 
