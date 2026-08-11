@@ -23,6 +23,8 @@ public class AnalyticsResultResponse {
 
     private Long missingValueCount;
 
+    private Long invalidValueCount;
+
     private Double qualityScore;
 
     private Map<String, ColumnAnalytics> statistics;

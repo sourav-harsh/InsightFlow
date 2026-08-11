@@ -3,6 +3,7 @@ package com.souravio.InsightFlow.analytics_service.service;
 
 import com.souravio.InsightFlow.analytics_service.dto.AnalyticsResultResponse;
 import com.souravio.InsightFlow.analytics_service.entity.AnalyticsResult;
+import com.souravio.InsightFlow.analytics_service.exception.AnalyticsNotFoundException;
 import com.souravio.InsightFlow.analytics_service.repository.AnalyticsResultRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ public class AnalyticsResultService {
         AnalyticsResult result = analyticsResultRepository
                 .findByDatasetId(datasetId)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new AnalyticsNotFoundException(
                                 "Analytics not found for dataset: " + datasetId
                         )
                 );
@@ -29,6 +30,7 @@ public class AnalyticsResultService {
                 .datasetId(result.getDatasetId())
                 .rowCount(result.getRowCount())
                 .columnCount(result.getColumnCount())
+                .invalidValueCount(result.getInvalidValueCount())
                 .missingValueCount(result.getMissingValueCount())
                 .qualityScore(result.getQualityScore())
                 .statistics(result.getStatistics())

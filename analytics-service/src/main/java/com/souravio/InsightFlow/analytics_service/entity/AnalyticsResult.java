@@ -43,6 +43,9 @@ public class AnalyticsResult {
     @Column(name = "missing_value_count", nullable = false)
     private Long missingValueCount;
 
+    @Column(name = "invalid_value_count", nullable = false)
+    private Long invalidValueCount;
+
     @Column(name = "quality_score", nullable = false)
     private Double qualityScore;
 
