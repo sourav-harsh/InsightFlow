@@ -1,5 +1,7 @@
 package com.souravio.InsightFlow.analytics_service.exception;
 
+import com.souravio.InsightFlow.auth_service.exception.BadRequestException;
+import com.souravio.InsightFlow.auth_service.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

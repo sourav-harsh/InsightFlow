@@ -146,7 +146,7 @@ services:
       - insight-network
 
   client:
-    build: ./insightflow
+    build: ./client
     container_name: client
     ports:
       - "5170:3000"
