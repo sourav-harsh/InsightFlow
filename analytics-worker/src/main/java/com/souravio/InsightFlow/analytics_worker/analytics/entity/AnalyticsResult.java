@@ -1,4 +1,4 @@
-package com.souravio.InsightFlow.analytics_worker.entity;
+package com.souravio.InsightFlow.analytics_worker.analytics.entity;
 
 import com.souravio.InsightFlow.analytics_worker.parser.ColumnAnalytics;
 import jakarta.persistence.Column;

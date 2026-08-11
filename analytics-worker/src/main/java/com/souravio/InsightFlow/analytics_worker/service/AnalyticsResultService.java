@@ -1,8 +1,8 @@
 package com.souravio.InsightFlow.analytics_worker.service;
 
-import com.souravio.InsightFlow.analytics_worker.entity.AnalyticsResult;
+import com.souravio.InsightFlow.analytics_worker.analytics.entity.AnalyticsResult;
 import com.souravio.InsightFlow.analytics_worker.parser.CsvParseResult;
-import com.souravio.InsightFlow.analytics_worker.repository.AnalyticsResultRepository;
+import com.souravio.InsightFlow.analytics_worker.analytics.repository.AnalyticsResultRepository;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ public class AnalyticsResultService {
 
   private final AnalyticsResultRepository analyticsResultRepository;
 
-  @Transactional
+  @Transactional(transactionManager = "analyticsTransactionManager")
   public AnalyticsResult saveResult(UUID datasetId, CsvParseResult parseResult) {
 
     try {
@@ -40,7 +40,7 @@ public class AnalyticsResultService {
     }
   }
 
-  @Transactional(readOnly = true)
+  @Transactional(readOnly = true, transactionManager = "analyticsTransactionManager")
   public AnalyticsResult getByDatasetId(UUID datasetId) {
 
     return analyticsResultRepository

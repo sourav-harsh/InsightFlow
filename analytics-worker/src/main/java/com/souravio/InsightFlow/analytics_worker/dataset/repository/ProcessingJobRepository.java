@@ -1,6 +1,6 @@
-package com.souravio.InsightFlow.analytics_worker.repository;
+package com.souravio.InsightFlow.analytics_worker.dataset.repository;
 
-import com.souravio.InsightFlow.analytics_worker.entity.ProcessingJob;
+import com.souravio.InsightFlow.analytics_worker.dataset.entity.ProcessingJob;
 import com.souravio.InsightFlow.analytics_worker.enums.JobStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

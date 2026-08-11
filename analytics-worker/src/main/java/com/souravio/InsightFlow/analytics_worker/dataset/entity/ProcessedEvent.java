@@ -1,4 +1,4 @@
-package com.souravio.InsightFlow.analytics_worker.entity;
+package com.souravio.InsightFlow.analytics_worker.dataset.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

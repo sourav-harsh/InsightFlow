@@ -1,7 +1,6 @@
 package com.souravio.InsightFlow.analytics_worker.service;
 
-import com.souravio.InsightFlow.analytics_worker.entity.ProcessedEvent;
-import com.souravio.InsightFlow.analytics_worker.repository.ProcessedEventRepository;
+import com.souravio.InsightFlow.analytics_worker.dataset.repository.ProcessedEventRepository;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,7 @@ public class ProcessedEventService {
 
   private final ProcessedEventRepository processedEventRepository;
 
-  @Transactional
+  @Transactional(transactionManager = "datasetTransactionManager")
   public boolean claimEvent(UUID eventId, UUID jobId, int attempt) {
 
     int inserted = processedEventRepository.insertIfNotExists(

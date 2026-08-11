@@ -2,11 +2,6 @@ spring:
   application:
     name: analytics-worker
 
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/dataset_db}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
-
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -20,6 +15,21 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+app:
+  datasource:
+    dataset:
+      url: ${DATASET_DB_URL:jdbc:postgresql://postgres:5432/dataset_db}
+      username: ${DATASET_DB_USERNAME:postgres}
+      password: ${DATASET_DB_PASSWORD:postgres}
+      driver-class-name: org.postgresql.Driver
+
+    analytics:
+      url: ${ANALYTICS_DB_URL:jdbc:postgresql://postgres:5432/analytics_db}
+      username: ${ANALYTICS_DB_USERNAME:postgres}
+      password: ${ANALYTICS_DB_PASSWORD:postgres}
+      driver-class-name: org.postgresql.Driver
+
 
 management:
   endpoints:

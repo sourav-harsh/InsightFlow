@@ -1,6 +1,6 @@
-package com.souravio.InsightFlow.analytics_worker.repository;
+package com.souravio.InsightFlow.analytics_worker.dataset.repository;
 
-import com.souravio.InsightFlow.analytics_worker.entity.ProcessedEvent;
+import com.souravio.InsightFlow.analytics_worker.dataset.entity.ProcessedEvent;
 
 import java.time.Instant;
 import java.util.UUID;

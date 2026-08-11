@@ -1,4 +1,4 @@
-package com.souravio.InsightFlow.analytics_worker.entity;
+package com.souravio.InsightFlow.analytics_worker.dataset.entity;
 
 import com.souravio.InsightFlow.analytics_worker.enums.JobStatus;
 import jakarta.persistence.*;
@@ -21,25 +21,28 @@ public class ProcessingJob {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(name = "dataset_id", nullable = false)
     private UUID datasetId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private JobStatus status;
 
+    @Column(name = "started_at")
     private Instant startedAt;
 
+    @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Column(name = "failed_at")
     private Instant failedAt;
 
+    @Column(name = "error_message")
     private String errorMessage;
 
-    @Column(nullable = false)
+    @Column(name = "retry_count", nullable = false)
     private Integer retryCount;
 
-    @Column(nullable = false)
-    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 }

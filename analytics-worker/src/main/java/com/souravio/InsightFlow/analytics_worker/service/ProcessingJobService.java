@@ -1,8 +1,8 @@
 package com.souravio.InsightFlow.analytics_worker.service;
 
 import com.souravio.InsightFlow.analytics_worker.enums.JobStatus;
-import com.souravio.InsightFlow.analytics_worker.entity.ProcessingJob;
-import com.souravio.InsightFlow.analytics_worker.repository.ProcessingJobRepository;
+import com.souravio.InsightFlow.analytics_worker.dataset.entity.ProcessingJob;
+import com.souravio.InsightFlow.analytics_worker.dataset.repository.ProcessingJobRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,7 @@ public class ProcessingJobService {
 
     private final ProcessingJobRepository jobRepository;
 
-    @Transactional
+    @Transactional(transactionManager = "datasetTransactionManager")
     public boolean markProcessing(UUID jobId) {
 
         ProcessingJob job =
@@ -55,7 +55,7 @@ public class ProcessingJobService {
         return true;
     }
 
-    @Transactional
+    @Transactional(transactionManager = "datasetTransactionManager")
     public void markCompleted(UUID jobId) {
 
         ProcessingJob job =
@@ -77,7 +77,7 @@ public class ProcessingJobService {
         jobRepository.save(job);
     }
 
-    @Transactional
+    @Transactional(transactionManager = "datasetTransactionManager")
     public void markFailed(
             UUID jobId,
             String errorMessage

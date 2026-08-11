@@ -97,9 +97,13 @@ services:
       - uploads_data:/app/uploads
 
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dataset_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      DATASET_DB_URL: jdbc:postgresql://postgres:5432/dataset_db
+      DATASET_DB_USERNAME: postgres
+      DATASET_DB_PASSWORD: postgres
+
+      ANALYTICS_DB_URL: jdbc:postgresql://postgres:5432/analytics_db
+      ANALYTICS_DB_USERNAME: postgres
+      ANALYTICS_DB_PASSWORD: postgres
 
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
