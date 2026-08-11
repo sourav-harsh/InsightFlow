@@ -10,13 +10,11 @@ public class RateLimitConfig {
 
     @Bean
     public KeyResolver userKeyResolver() {
-
         return exchange -> {
 
-            String userId =
-                    exchange.getRequest()
-                            .getHeaders()
-                            .getFirst("X-User-Id");
+            String userId = exchange.getRequest()
+                    .getHeaders()
+                    .getFirst("X-User-Id");
 
             if (userId == null || userId.isBlank()) {
                 return Mono.just("anonymous");
