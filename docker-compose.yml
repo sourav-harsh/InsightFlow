@@ -122,16 +122,24 @@ services:
     build:
       context: ./analytics-service
       dockerfile: Dockerfile
+
+
     container_name: analytics-service
+
     ports:
       - "8004:8004"
+
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics_db
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
     depends_on:
       postgres:
         condition: service_healthy
+
+    networks:
+      - insight-network
 
   postgres:
     image: postgres:17
@@ -161,7 +169,6 @@ services:
     networks:
       - insight-network
 
-
   rabbitmq:
     image: rabbitmq:4-management
     container_name: rabbitmq
@@ -177,7 +184,6 @@ services:
 
     networks:
       - insight-network
-
 
   redis:
     image: redis:8-alpine
