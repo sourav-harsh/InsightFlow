@@ -1,6 +1,7 @@
 package com.souravio.InsightFlow.dataset_service.service;
 
 import com.souravio.InsightFlow.dataset_service.dto.event.DatasetProcessingRequestedEvent;
+import com.souravio.InsightFlow.dataset_service.dto.response.JobStatusResponse;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
 import com.souravio.InsightFlow.dataset_service.entity.Dataset;
 import com.souravio.InsightFlow.dataset_service.entity.OutboxEvent;
@@ -154,4 +155,26 @@ public class DatasetService {
 
     return filename.substring(filename.lastIndexOf("."));
   }
+
+    public JobStatusResponse getJobStatus(UUID jobId) {
+
+        ProcessingJob job = jobRepository.findById(jobId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Processing job not found: " + jobId
+                        )
+                );
+
+        return JobStatusResponse.builder()
+                .jobId(job.getId())
+                .datasetId(job.getDatasetId())
+                .status(job.getStatus())
+                .retryCount(job.getRetryCount())
+                .startedAt(job.getStartedAt())
+                .completedAt(job.getCompletedAt())
+                .failedAt(job.getFailedAt())
+                .errorMessage(job.getErrorMessage())
+                .createdAt(job.getCreatedAt())
+                .build();
+    }
 }
