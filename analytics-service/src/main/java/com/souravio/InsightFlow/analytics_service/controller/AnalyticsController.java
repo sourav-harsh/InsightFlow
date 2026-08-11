@@ -1,6 +1,7 @@
 package com.souravio.InsightFlow.analytics_service.controller;
 
 import com.souravio.InsightFlow.analytics_service.dto.AnalyticsResultResponse;
+import com.souravio.InsightFlow.analytics_service.dto.ColumnAnalyticsResponse;
 import com.souravio.InsightFlow.analytics_service.service.AnalyticsResultService;
 import com.souravio.InsightFlow.dataset_service.dto.response.AnalyticsSummaryResponse;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,22 @@ public class AnalyticsController {
 
         AnalyticsSummaryResponse response =
                 analyticsResultService.getAnalyticsSummary(datasetId);
+
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/datasets/{datasetId}/columns/{columnName}")
+    public ResponseEntity<ColumnAnalyticsResponse> getColumnAnalytics(
+            @PathVariable UUID datasetId,
+            @PathVariable String columnName
+    ) {
+
+        ColumnAnalyticsResponse response =
+                analyticsResultService.getColumnAnalytics(
+                        datasetId,
+                        columnName
+                );
 
         return ResponseEntity.ok(response);
     }

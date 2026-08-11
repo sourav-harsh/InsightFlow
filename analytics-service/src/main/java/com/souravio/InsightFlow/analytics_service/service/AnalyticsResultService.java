@@ -3,6 +3,7 @@ package com.souravio.InsightFlow.analytics_service.service;
 
 import com.souravio.InsightFlow.analytics_service.dto.AnalyticsResultResponse;
 import com.souravio.InsightFlow.analytics_service.dto.ColumnAnalytics;
+import com.souravio.InsightFlow.analytics_service.dto.ColumnAnalyticsResponse;
 import com.souravio.InsightFlow.analytics_service.entity.AnalyticsResult;
 import com.souravio.InsightFlow.analytics_service.exception.AnalyticsNotFoundException;
 import com.souravio.InsightFlow.analytics_service.repository.AnalyticsResultRepository;
@@ -47,7 +48,7 @@ public class AnalyticsResultService {
         AnalyticsResult result = analyticsResultRepository
                 .findByDatasetId(datasetId)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new AnalyticsNotFoundException(
                                 "Analytics not found for dataset: " + datasetId
                         )
                 );
@@ -81,6 +82,41 @@ public class AnalyticsResultService {
                 .columnTypeDistribution(typeDistribution)
                 .healthyColumns(healthyColumns)
                 .problematicColumns(problematicColumns)
+                .build();
+    }
+
+
+    public ColumnAnalyticsResponse getColumnAnalytics(
+            UUID datasetId,
+            String columnName
+    ) {
+
+    AnalyticsResult result =
+        analyticsResultRepository
+            .findByDatasetId(datasetId)
+            .orElseThrow(
+                () ->
+                    new AnalyticsNotFoundException(
+                        "Analytics not found for dataset: " + datasetId));
+
+        ColumnAnalytics columnAnalytics =
+                result.getStatistics().get(columnName);
+
+        if (columnAnalytics == null) {
+            throw new AnalyticsNotFoundException(
+                    "Analytics not found for column: " + columnName
+            );
+        }
+
+        return ColumnAnalyticsResponse.builder()
+                .columnName(columnName)
+                .type(columnAnalytics.getType())
+                .missingCount(columnAnalytics.getMissingCount())
+                .invalidCount(columnAnalytics.getInvalidCount())
+                .qualityScore(columnAnalytics.getQualityScore())
+                .min(columnAnalytics.getMin())
+                .max(columnAnalytics.getMax())
+                .average(columnAnalytics.getAverage())
                 .build();
     }
 }
