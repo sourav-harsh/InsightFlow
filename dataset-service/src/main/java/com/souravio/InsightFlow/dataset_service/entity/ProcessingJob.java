@@ -3,6 +3,7 @@ package com.souravio.InsightFlow.dataset_service.entity;
 import com.souravio.InsightFlow.dataset_service.enums.JobStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -42,9 +43,11 @@ public class ProcessingJob {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    private Instant failedAt;
+
     @Column(name = "error_message")
     private String errorMessage;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(nullable = false)
     private Instant createdAt;
 }

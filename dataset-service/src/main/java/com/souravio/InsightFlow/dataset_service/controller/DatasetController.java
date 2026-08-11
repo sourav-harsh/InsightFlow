@@ -1,5 +1,6 @@
 package com.souravio.InsightFlow.dataset_service.controller;
 
+import com.souravio.InsightFlow.dataset_service.dto.response.JobStatusResponse;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
 import com.souravio.InsightFlow.dataset_service.service.DatasetService;
 import lombok.RequiredArgsConstructor;
@@ -40,5 +41,17 @@ public class DatasetController {
         return ResponseEntity
                 .accepted()
                 .body(response);
+    }
+
+
+    @GetMapping("/jobs/{jobId}")
+    public ResponseEntity<JobStatusResponse> getJobStatus(
+            @PathVariable UUID jobId
+    ) {
+
+        JobStatusResponse response =
+                datasetService.getJobStatus(jobId);
+
+        return ResponseEntity.ok(response);
     }
 }

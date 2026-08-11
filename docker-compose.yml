@@ -73,7 +73,7 @@ services:
       STORAGE_PATH: /app/uploads
 
     volumes:
-      - dataset-uploads:/app/uploads
+      - uploads_data:/app/uploads
 
     depends_on:
       postgres:
@@ -82,6 +82,65 @@ services:
         condition: service_started
 
     restart: unless-stopped
+
+    networks:
+      - insight-network
+
+  analytics-worker:
+    build:
+      context: ./analytics-worker
+      dockerfile: Dockerfile
+
+    container_name: analytics-worker
+
+    volumes:
+      - uploads_data:/app/uploads
+
+    environment:
+      DATASET_DB_URL: jdbc:postgresql://postgres:5432/dataset_db
+      DATASET_DB_USERNAME: postgres
+      DATASET_DB_PASSWORD: postgres
+
+      ANALYTICS_DB_URL: jdbc:postgresql://postgres:5432/analytics_db
+      ANALYTICS_DB_USERNAME: postgres
+      ANALYTICS_DB_PASSWORD: postgres
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      rabbitmq:
+        condition: service_started
+
+    restart: unless-stopped
+
+    networks:
+      - insight-network
+
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+
+
+    container_name: analytics-service
+
+    ports:
+      - "8004:8004"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+    depends_on:
+      postgres:
+        condition: service_healthy
 
     networks:
       - insight-network
@@ -114,7 +173,6 @@ services:
     networks:
       - insight-network
 
-
   rabbitmq:
     image: rabbitmq:4-management
     container_name: rabbitmq
@@ -130,7 +188,6 @@ services:
 
     networks:
       - insight-network
-
 
   redis:
     image: redis:8-alpine
@@ -153,6 +210,7 @@ volumes:
   rabbitmq-data:
   redis-data:
   dataset-uploads:
+  uploads_data:
 
 networks:
 

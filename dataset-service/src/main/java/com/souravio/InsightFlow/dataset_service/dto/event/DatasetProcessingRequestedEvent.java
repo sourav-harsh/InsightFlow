@@ -20,4 +20,8 @@ public class DatasetProcessingRequestedEvent {
     private String storagePath;
 
     private String fileType;
+
+    private Integer retryCount;
+
+    private Integer attempt;
 }

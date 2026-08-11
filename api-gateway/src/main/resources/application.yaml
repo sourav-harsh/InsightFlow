@@ -19,6 +19,10 @@ spring:
           uri: ${DATASET_SERVICE_URL:http://dataset-service:9030}
           predicates:
             - Path=/api/v1/datasets/**
+        - id: analytics-service
+          uri: ${ANALYTICS_SERVICE_URL:http://analytics-service:8004}
+          predicates:
+            - Path=/api/v1/analytics/**
 management:
   endpoints:
     web:
