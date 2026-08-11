@@ -30,7 +30,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             final String tokenHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
-            if(tokenHeader == null || !tokenHeader.startsWith("Bearer")) {
+            if(tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
@@ -40,7 +40,10 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             try {
                 UUID userId = jwtService.getUserIdFromToken(token);
                 ServerWebExchange mutatedExchange = exchange.mutate()
-                        .request(r -> r.header("X-User-Id", userId.toString()))
+                        .request(r -> r
+                                .headers(headers -> headers.remove("X-User-Id"))
+                                .header("X-User-Id", userId.toString())
+                        )
                         .build();
 
                 return chain.filter(mutatedExchange);
