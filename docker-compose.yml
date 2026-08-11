@@ -145,6 +145,20 @@ services:
     networks:
       - insight-network
 
+  client:
+    build: ./insightflow
+    container_name: client
+    ports:
+      - "5170:3000"
+    networks:
+      - insight-network
+    depends_on:
+      - api-gateway
+      - dataset-service
+      - analytics-service
+      - auth-service
+    restart: unless-stopped
+
   postgres:
     image: postgres:17
 
