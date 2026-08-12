@@ -1,5 +1,6 @@
 package com.souravio.InsightFlow.dataset_service.controller;
 
+import com.souravio.InsightFlow.dataset_service.auth.AuthContextHolder;
 import com.souravio.InsightFlow.dataset_service.dto.response.JobStatusResponse;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
 import com.souravio.InsightFlow.dataset_service.service.DatasetService;
@@ -25,11 +26,9 @@ public class DatasetController {
             MultipartFile file
     ) throws Exception {
 
-        // Temporary user ID for Day 2.
-        // Tomorrow this will come from JWT.
         UUID userId =
                 UUID.fromString(
-                        "00000000-0000-0000-0000-000000000001"
+                        AuthContextHolder.getCurrentUserId()
                 );
 
         UploadDatasetResponse response =
