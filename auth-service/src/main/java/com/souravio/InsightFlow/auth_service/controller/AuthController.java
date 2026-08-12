@@ -9,6 +9,7 @@ import com.souravio.InsightFlow.auth_service.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -29,14 +30,14 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<UserDTO> register(@RequestBody SignupRequestDTO signupRequestDto) {
+    public ResponseEntity<UserDTO> register(@Valid @RequestBody SignupRequestDTO signupRequestDto) {
         log.info("Registering user with email: {}", signupRequestDto.getEmail());
         UserDTO userDto = authService.register(signupRequestDto);
         return new ResponseEntity<>(userDto, HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequestDto, HttpServletResponse response) {
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequestDto, HttpServletResponse response) {
         log.info("User login with email: {}", loginRequestDto.getEmail());
         String[] token = authService.login(loginRequestDto);
         log.info("User logged in successfully");
