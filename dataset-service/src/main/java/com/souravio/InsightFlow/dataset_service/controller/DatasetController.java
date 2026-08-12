@@ -1,5 +1,6 @@
 package com.souravio.InsightFlow.dataset_service.controller;
 
+import com.souravio.InsightFlow.dataset_service.advice.SkipResponseWrapper;
 import com.souravio.InsightFlow.dataset_service.auth.AuthContextHolder;
 import com.souravio.InsightFlow.dataset_service.dto.response.JobStatusResponse;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
@@ -56,6 +57,7 @@ public class DatasetController {
     }
 
     @GetMapping("/{datasetId}/download")
+    @SkipResponseWrapper
     public ResponseEntity<Resource> downloadCleanedCsv(
             @PathVariable UUID datasetId
     ) {
