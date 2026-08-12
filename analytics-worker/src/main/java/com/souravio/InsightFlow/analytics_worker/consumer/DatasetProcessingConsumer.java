@@ -2,6 +2,7 @@ package com.souravio.InsightFlow.analytics_worker.consumer;
 
 import com.rabbitmq.client.Channel;
 import com.souravio.InsightFlow.analytics_worker.config.RabbitMQConfig;
+import com.souravio.InsightFlow.analytics_worker.dto.DatasetCleaningCompletedEvent;
 import com.souravio.InsightFlow.analytics_worker.dto.DatasetProcessingRequestedEvent;
 import com.souravio.InsightFlow.analytics_worker.parser.CsvCleanResult;
 import com.souravio.InsightFlow.analytics_worker.parser.CsvCleaner;
@@ -154,6 +155,27 @@ public class DatasetProcessingConsumer {
               cleanResult.getCleanedRowCount(),
               cleanResult.getRemovedRowCount(),
               cleanResult.getCleanedFilePath()
+      );
+
+      DatasetCleaningCompletedEvent completedEvent =
+              DatasetCleaningCompletedEvent.builder()
+                      .eventId(UUID.randomUUID())
+                      .datasetId(event.getDatasetId())
+                      .jobId(event.getJobId())
+                      .originalStoragePath(event.getStoragePath())
+                      .cleanedStoragePath(cleanResult.getCleanedFilePath())
+                      .originalRowCount(cleanResult.getOriginalRowCount())
+                      .cleanedRowCount(cleanResult.getCleanedRowCount())
+                      .removedRowCount(cleanResult.getRemovedRowCount())
+                      .build();
+
+      String completedMessage =
+              objectMapper.writeValueAsString(completedEvent);
+
+      rabbitTemplate.convertAndSend(
+              RabbitMQConfig.CLEANED_EXCHANGE,
+              RabbitMQConfig.CLEANED_ROUTING_KEY,
+              completedMessage
       );
     } catch (Exception exception) {
       throw new RuntimeException("Failed to process dataset", exception);

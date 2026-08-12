@@ -36,6 +36,15 @@ public class RabbitMQConfig {
     public static final String DLQ_ROUTING_KEY =
             "dataset.processing.dlq";
 
+    public static final String CLEANED_EXCHANGE =
+            "insightflow.dataset.cleaned.exchange";
+
+    public static final String CLEANED_QUEUE =
+            "insightflow.dataset.cleaned.queue";
+
+    public static final String CLEANED_ROUTING_KEY =
+            "dataset.cleaned";
+
     // =========================
     // Main Exchange
     // =========================
@@ -72,6 +81,19 @@ public class RabbitMQConfig {
 
         return new TopicExchange(
                 DLQ_EXCHANGE,
+                true,
+                false
+        );
+    }
+
+    // =========================
+    // Cleaned Exchange
+    // =========================
+    @Bean
+    public TopicExchange cleanedExchange() {
+
+        return new TopicExchange(
+                CLEANED_EXCHANGE,
                 true,
                 false
         );
@@ -134,6 +156,18 @@ public class RabbitMQConfig {
     }
 
     // =========================
+    // Cleaned Queue
+    // =========================
+
+    @Bean
+    public Queue cleanedQueue() {
+
+        return QueueBuilder
+                .durable(CLEANED_QUEUE)
+                .build();
+    }
+
+    // =========================
     // Main Binding
     // =========================
 
@@ -148,6 +182,7 @@ public class RabbitMQConfig {
                 .to(mainExchange)
                 .with(MAIN_ROUTING_KEY);
     }
+
 
     // =========================
     // Retry Binding
@@ -179,6 +214,23 @@ public class RabbitMQConfig {
                 .bind(dlqQueue)
                 .to(dlqExchange)
                 .with(DLQ_ROUTING_KEY);
+    }
+
+    // =========================
+    // Cleaned Binding
+    // =========================
+
+
+    @Bean
+    public Binding cleanedBinding(
+            Queue cleanedQueue,
+            TopicExchange cleanedExchange
+    ) {
+
+        return BindingBuilder
+                .bind(cleanedQueue)
+                .to(cleanedExchange)
+                .with(CLEANED_ROUTING_KEY);
     }
 
 }

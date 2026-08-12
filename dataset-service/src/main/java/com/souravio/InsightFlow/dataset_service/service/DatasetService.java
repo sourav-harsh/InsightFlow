@@ -156,7 +156,7 @@ public class DatasetService {
     return filename.substring(filename.lastIndexOf("."));
   }
 
-    public JobStatusResponse getJobStatus(UUID jobId) {
+  public JobStatusResponse getJobStatus(UUID jobId) {
 
         ProcessingJob job = jobRepository.findById(jobId)
                 .orElseThrow(() ->

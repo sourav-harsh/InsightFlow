@@ -16,6 +16,15 @@ public class RabbitMQConfig {
     public static final String ROUTING_KEY =
             "dataset.processing.requested";
 
+    public static final String CLEANED_EXCHANGE =
+            "insightflow.dataset.cleaned.exchange";
+
+    public static final String CLEANED_QUEUE =
+            "insightflow.dataset.cleaned.queue";
+
+    public static final String CLEANED_ROUTING_KEY =
+            "dataset.cleaned";
+
     @Bean
     public TopicExchange datasetExchange() {
         return new TopicExchange(EXCHANGE, true,false);
@@ -37,5 +46,32 @@ public class RabbitMQConfig {
                 .bind(datasetProcessingQueue)
                 .to(datasetExchange)
                 .with(ROUTING_KEY);
+    }
+
+    @Bean
+    public TopicExchange cleanedExchange() {
+        return new TopicExchange(
+                CLEANED_EXCHANGE,
+                true,
+                false
+        );
+    }
+
+    @Bean
+    public Queue cleanedQueue() {
+        return QueueBuilder
+                .durable(CLEANED_QUEUE)
+                .build();
+    }
+
+    @Bean
+    public Binding cleanedBinding(
+            Queue cleanedQueue,
+            TopicExchange cleanedExchange
+    ) {
+        return BindingBuilder
+                .bind(cleanedQueue)
+                .to(cleanedExchange)
+                .with(CLEANED_ROUTING_KEY);
     }
 }

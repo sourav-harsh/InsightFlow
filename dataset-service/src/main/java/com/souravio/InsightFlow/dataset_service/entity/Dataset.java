@@ -56,6 +56,15 @@ public class Dataset {
   @Column(name = "total_columns")
   private Integer totalColumns;
 
+  @Column(name = "cleaned_csv_path")
+  private String cleanedCsvPath;
+
+  @Column(name = "cleaned_row_count")
+  private Long cleanedRowCount;
+
+  @Column(name = "removed_row_count")
+  private Long removedRowCount;
+
   @Column(name = "uploaded_at", nullable = false)
   private Instant uploadedAt;
 
