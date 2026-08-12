@@ -1,19 +1,64 @@
 server.port: 8080
 jwt:
-  secretKey: your-secret-key
-
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    reactor.netty.http.client: DEBUG
+  secretKey: fljfkowienfkdjiewof;sjdfopirjwnffsdjkewoirjwjlkfnadskfljsdlkfs
 
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
   cloud:
     gateway:
       routes:
         - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://auth-service:9020}
+          uri: http://auth-service:9020
           predicates:
             - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=2
+        - id: dataset-service
+          uri: ${DATASET_SERVICE_URL:http://dataset-service:9030}
+          predicates:
+            - Path=/api/v1/datasets/**
+          filters:
+            - AuthenticationFilter
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+        - id: analytics-service
+          uri: ${ANALYTICS_SERVICE_URL:http://analytics-service:8004}
+          predicates:
+            - Path=/api/v1/analytics/**
+          filters:
+            - AuthenticationFilter
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway,health

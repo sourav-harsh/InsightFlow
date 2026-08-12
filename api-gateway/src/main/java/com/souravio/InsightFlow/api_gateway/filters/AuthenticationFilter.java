@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 
+import java.util.UUID;
+
 @Slf4j
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
@@ -28,7 +30,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             final String tokenHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
-            if(tokenHeader == null || !tokenHeader.startsWith("Bearer")) {
+            if(tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
@@ -36,9 +38,12 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             final String token = tokenHeader.split("Bearer ")[1];
 
             try {
-                String userId = jwtService.getUserIdFromToken(token);
+                UUID userId = jwtService.getUserIdFromToken(token);
                 ServerWebExchange mutatedExchange = exchange.mutate()
-                        .request(r -> r.header("X-User-Id", userId))
+                        .request(r -> r
+                                .headers(headers -> headers.remove("X-User-Id"))
+                                .header("X-User-Id", userId.toString())
+                        )
                         .build();
 
                 return chain.filter(mutatedExchange);

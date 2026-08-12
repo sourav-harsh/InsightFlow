@@ -1,0 +1,241 @@
+version: "3.9"
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:9020
+
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - insight-network
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+
+    container_name: auth-service
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+      SPRING_REDIS_HOST: redis
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9020/auth/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - insight-network
+
+  dataset-service:
+    build:
+      context: ./dataset-service
+      dockerfile: Dockerfile
+
+    container_name: dataset-service
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dataset_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
+      STORAGE_PATH: /app/uploads
+
+    volumes:
+      - uploads_data:/app/uploads
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+    restart: unless-stopped
+
+    networks:
+      - insight-network
+
+  analytics-worker:
+    build:
+      context: ./analytics-worker
+      dockerfile: Dockerfile
+
+    container_name: analytics-worker
+
+    volumes:
+      - uploads_data:/app/uploads
+
+    environment:
+      DATASET_DB_URL: jdbc:postgresql://postgres:5432/dataset_db
+      DATASET_DB_USERNAME: postgres
+      DATASET_DB_PASSWORD: postgres
+
+      ANALYTICS_DB_URL: jdbc:postgresql://postgres:5432/analytics_db
+      ANALYTICS_DB_USERNAME: postgres
+      ANALYTICS_DB_PASSWORD: postgres
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      rabbitmq:
+        condition: service_started
+
+    restart: unless-stopped
+
+    networks:
+      - insight-network
+
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+
+
+    container_name: analytics-service
+
+    ports:
+      - "8004:8004"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - insight-network
+
+  client:
+    build: ./client
+    container_name: client
+    ports:
+      - "5170:3000"
+    networks:
+      - insight-network
+    depends_on:
+      - api-gateway
+      - dataset-service
+      - analytics-service
+      - auth-service
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+
+    container_name: postgres
+
+    ports:
+      - "5433:5432"
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    volumes:
+        - postgres-data:/var/lib/postgresql/data
+        - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d insightflow" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    networks:
+      - insight-network
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+    restart: unless-stopped
+
+    networks:
+      - insight-network
+
+  redis:
+    image: redis:8-alpine
+
+    container_name: redis
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis-data:/data
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+    networks:
+      - insight-network
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  redis-data:
+  dataset-uploads:
+  uploads_data:
+
+networks:
+
+  insight-network:
+    driver: bridge

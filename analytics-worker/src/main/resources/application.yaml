@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: analytics-worker
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  rabbitmq:
+    listener:
+      simple:
+        acknowledge-mode: manual
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+app:
+  datasource:
+    dataset:
+      url: ${DATASET_DB_URL:jdbc:postgresql://postgres:5432/dataset_db}
+      username: ${DATASET_DB_USERNAME:postgres}
+      password: ${DATASET_DB_PASSWORD:postgres}
+      driver-class-name: org.postgresql.Driver
+
+    analytics:
+      url: ${ANALYTICS_DB_URL:jdbc:postgresql://postgres:5432/analytics_db}
+      username: ${ANALYTICS_DB_USERNAME:postgres}
+      password: ${ANALYTICS_DB_PASSWORD:postgres}
+      driver-class-name: org.postgresql.Driver
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
