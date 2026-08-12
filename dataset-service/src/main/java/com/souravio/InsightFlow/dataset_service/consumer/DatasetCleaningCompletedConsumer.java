@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
@@ -18,17 +19,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class DatasetCleaningCompletedConsumer {
 
     private final DatasetRepository datasetRepository;
+    private final ObjectMapper objectMapper;
 
     @RabbitListener(
             queues = RabbitMQConfig.CLEANED_QUEUE
     )
     @Transactional
-    public void consume(DatasetCleaningCompletedEvent event) {
+    public void consume(String message) {
 
+        log.info("Received cleaning completed event: {}", message);
+
+        DatasetCleaningCompletedEvent event =
+                objectMapper.readValue(message, DatasetCleaningCompletedEvent.class);
         log.info(
                 "Received dataset cleaning completed event. datasetId={}, cleanedPath={}",
                 event.getDatasetId(),
-                event.getCleanedCsvPath()
+                event.getCleanedStoragePath()
         );
 
         Dataset dataset = datasetRepository
@@ -39,7 +45,7 @@ public class DatasetCleaningCompletedConsumer {
                         )
                 );
 
-        dataset.setCleanedCsvPath(event.getCleanedCsvPath());
+        dataset.setCleanedCsvPath(event.getCleanedStoragePath());
         dataset.setCleanedRowCount(event.getCleanedRowCount());
         dataset.setRemovedRowCount(event.getRemovedRowCount());
 

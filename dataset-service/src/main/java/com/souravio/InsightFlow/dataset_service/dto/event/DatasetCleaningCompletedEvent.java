@@ -21,7 +21,7 @@ public class DatasetCleaningCompletedEvent {
 
     private String originalStoragePath;
 
-    private String cleanedCsvPath;
+    private String cleanedStoragePath;
 
     private Long originalRowCount;
 
