@@ -108,18 +108,19 @@ export async function loginUser({ email, password }) {
 }
 
 /** POST /api/v1/auth/register — returns { token, user } (auto sign-in). */
-export async function registerUser({ name, email, password }) {
+export async function registerUser({ firstName, lastName, email, password }) {
   if (USE_MOCK) {
     await delay(900);
-    return normalizeAuthPayload(mockAuth.register(name, email).data, email);
+    return normalizeAuthPayload(mockAuth.register(firstName, lastName, email).data, email);
   }
   const data = await request("/api/v1/auth/register", {
     method: "POST",
     auth: false,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ firstName, lastName, email, password }),
   });
-  return normalizeAuthPayload(data, email);
+  const loginData = await loginUser({email, password});
+  return normalizeAuthPayload(loginData, email);
 }
 
 /* ------------------------------------------------------------------ */

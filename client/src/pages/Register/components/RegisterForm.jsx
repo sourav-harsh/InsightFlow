@@ -38,7 +38,9 @@ export default function RegisterForm() {
 
     setSubmitting(true);
     try {
-      await register(form.name.trim(), form.email.trim(), form.password);
+      const firstName = form.name.trim().split(" ")[0];
+      const lastName = form.name.trim().split(" ")[1];
+      await register(firstName, lastName, form.email.trim(), form.password);
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err.message || "Unable to create your account. Please try again.");

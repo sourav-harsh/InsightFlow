@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { clearAuth, getStoredAuth, loginUser, registerUser, saveAuth } from "../api/client";
+import {useNavigate} from "react-router-dom";
 
 const AuthContext = createContext(null);
 
@@ -10,6 +11,7 @@ const AuthContext = createContext(null);
  */
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => getStoredAuth());
+    const navigate = useNavigate();
 
   const login = useCallback(async (email, password) => {
     const session = await loginUser({ email, password });
@@ -18,8 +20,8 @@ export function AuthProvider({ children }) {
     return session;
   }, []);
 
-  const register = useCallback(async (name, email, password) => {
-    const session = await registerUser({ name, email, password });
+  const register = useCallback(async (firstName,lastName, email, password) => {
+     const session = await registerUser({ firstName, lastName, email, password });
     saveAuth(session);
     setAuth(session);
     return session;

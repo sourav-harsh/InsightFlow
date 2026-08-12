@@ -54,7 +54,7 @@ export default function Dashboard() {
             >
               {(datasets.data || []).map((dataset) => (
                 <option key={dataset.datasetId} value={dataset.datasetId}>
-                  {dataset.filename}
+                  {dataset.fileName}
                 </option>
               ))}
             </select>

@@ -224,4 +224,12 @@ public class DatasetService {
             .contentLength(filePath.toFile().length())
             .body(resource);
   }
+
+  public String getFileName(UUID datasetId) {
+    Dataset dataset =
+        datasetRepository
+            .findById(datasetId)
+            .orElseThrow(() -> new ResourceNotFoundException("Dataset not found: " + datasetId));
+    return dataset.getOriginalFilename();
+  }
 }

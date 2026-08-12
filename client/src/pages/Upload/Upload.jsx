@@ -87,7 +87,7 @@ export default function Upload() {
 
           {(uploading || progress > 0) && (
             <div className="mt-5">
-              <ProgressBar value={progress} label="Upload progress" tone="brand" />
+              <ProgressBar value={progress} label="Upload progress" />
             </div>
           )}
 

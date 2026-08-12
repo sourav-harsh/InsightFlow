@@ -13,7 +13,7 @@ export default function DatasetCard({ dataset }) {
             <FiDatabase size={18} />
           </span>
           <div>
-            <h3 className="text-sm font-semibold text-ink-900">{dataset.filename}</h3>
+            <h3 className="text-sm font-semibold text-ink-900">{dataset.fileName}</h3>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
               <FiClock size={12} /> {formatDateTime(dataset.createdAt)}
             </p>

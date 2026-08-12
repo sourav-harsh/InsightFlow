@@ -3,6 +3,7 @@ package com.souravio.InsightFlow.dataset_service.controller;
 import com.souravio.InsightFlow.dataset_service.advice.SkipResponseWrapper;
 import com.souravio.InsightFlow.dataset_service.auth.AuthContextHolder;
 import com.souravio.InsightFlow.dataset_service.dto.response.JobStatusResponse;
+import com.souravio.InsightFlow.dataset_service.dto.response.ProcessingJobResponse;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
 import com.souravio.InsightFlow.dataset_service.entity.ProcessingJob;
 import com.souravio.InsightFlow.dataset_service.service.DatasetService;
@@ -70,7 +71,7 @@ public class DatasetController {
     }
 
     @GetMapping("/jobs")
-    public ResponseEntity<List<ProcessingJob>> getProcessingJobs() {
+    public ResponseEntity<List<ProcessingJobResponse>> getProcessingJobs() {
 
         UUID userId =
                 UUID.fromString(
