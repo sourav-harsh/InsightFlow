@@ -13,7 +13,8 @@ import java.util.UUID;
         name = "processing_jobs",
         indexes = {
                 @Index(name = "idx_job_dataset_id", columnList = "dataset_id"),
-                @Index(name = "idx_job_status", columnList = "status")
+                @Index(name = "idx_job_status", columnList = "status"),
+                @Index(name = "idx_job_user_id", columnList = "user_id")
         }
 )
 @Getter
@@ -29,6 +30,9 @@ public class ProcessingJob {
 
     @Column(name = "dataset_id", nullable = false)
     private UUID datasetId;
+
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

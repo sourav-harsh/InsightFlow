@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
@@ -89,6 +90,7 @@ public class DatasetService {
     ProcessingJob job =
         ProcessingJob.builder()
             .datasetId(savedDataset.getId())
+            .userId(userId)
             .status(JobStatus.PENDING)
             .retryCount(0)
             .createdAt(now)
@@ -185,7 +187,6 @@ public class DatasetService {
                 .createdAt(job.getCreatedAt())
                 .build();
     }
-
 
   public ResponseEntity<Resource> downloadCleanedCsv(UUID datasetId) {
 

@@ -4,13 +4,16 @@ import com.souravio.InsightFlow.dataset_service.advice.SkipResponseWrapper;
 import com.souravio.InsightFlow.dataset_service.auth.AuthContextHolder;
 import com.souravio.InsightFlow.dataset_service.dto.response.JobStatusResponse;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
+import com.souravio.InsightFlow.dataset_service.entity.ProcessingJob;
 import com.souravio.InsightFlow.dataset_service.service.DatasetService;
+import com.souravio.InsightFlow.dataset_service.service.ProcessingJobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -19,6 +22,7 @@ import java.util.UUID;
 public class DatasetController {
 
     private final DatasetService datasetService;
+    private final ProcessingJobService processingJobService;
 
     @PostMapping(
             consumes = "multipart/form-data"
@@ -63,5 +67,16 @@ public class DatasetController {
     ) {
 
         return datasetService.downloadCleanedCsv(datasetId);
+    }
+
+    @GetMapping("/jobs")
+    public ResponseEntity<List<ProcessingJob>> getProcessingJobs() {
+
+        UUID userId =
+                UUID.fromString(
+                        AuthContextHolder.getCurrentUserId()
+                );
+
+        return processingJobService.getJobsByUserId(userId);
     }
 }

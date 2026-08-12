@@ -14,7 +14,7 @@ export default function Datasets() {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(
-    () => (data || []).filter((dataset) => dataset.filename.toLowerCase().includes(query.trim().toLowerCase())),
+    () => (data || []).filter((dataset) => dataset.datasetId.toLowerCase().includes(query.trim().toLowerCase())),
     [data, query]
   );
 

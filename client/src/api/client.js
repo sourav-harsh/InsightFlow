@@ -175,6 +175,9 @@ export async function getColumnAnalytics(datasetId, columnName) {
 
 /** Local dataset registry (no list endpoint available yet). */
 export async function listDatasets() {
+  if(USE_MOCK){
   await delay(250);
   return mockDatasets;
+  }
+  return request(`/api/v1/datasets/jobs`);
 }
