@@ -45,7 +45,7 @@ export default function Dropzone({ file, onFileSelect, disabled }) {
           <FiUploadCloud size={24} />
         </span>
         <p className="mt-4 text-sm font-semibold text-ink-900">Drag & drop your CSV file here</p>
-        <p className="mt-1 text-xs text-slate-500">or click to browse — CSV only, up to 200 MB</p>
+        <p className="mt-1 text-xs text-slate-500">or click to browse — CSV only, up to 80 MB</p>
         <input
           ref={inputRef}
           type="file"

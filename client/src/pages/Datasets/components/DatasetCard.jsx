@@ -8,7 +8,7 @@ export default function DatasetCard({ dataset, summary }) {
   return (
     <article className="card card-pad transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 truncate">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
             <FiDatabase size={18} />
           </span>

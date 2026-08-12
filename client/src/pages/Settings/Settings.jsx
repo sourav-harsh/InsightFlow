@@ -14,6 +14,7 @@ const ENDPOINTS = [
   { method: "GET", path: "/api/v1/analytics/datasets/:datasetId", note: "Full dataset analytics", access: "JWT" },
   { method: "GET", path: "/api/v1/analytics/datasets/:datasetId/summary", note: "Compact summary", access: "JWT" },
   { method: "GET", path: "/api/v1/analytics/datasets/:datasetId/columns/:columnName", note: "Single column profile", access: "JWT" },
+  { method: "GET", path: "/api/v1/analytics/datasets/jobs", note: "Get all jobs", access: "JWT" },
 ];
 
 export default function Settings() {
@@ -42,7 +43,7 @@ export default function Settings() {
       <PageHeader title="Settings" description="Session and API connection details used by this dashboard." />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="API connection" subtitle="Configured through environment variables">
+        <Card title="API connection" subtitle="Configured through environment variables" className="hidden">
           <div className="space-y-4">
             <div>
               <p className="label">Base URL</p>
