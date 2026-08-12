@@ -5,6 +5,7 @@ import com.souravio.InsightFlow.dataset_service.dto.response.JobStatusResponse;
 import com.souravio.InsightFlow.dataset_service.dto.response.UploadDatasetResponse;
 import com.souravio.InsightFlow.dataset_service.service.DatasetService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,5 +53,13 @@ public class DatasetController {
                 datasetService.getJobStatus(jobId);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{datasetId}/download")
+    public ResponseEntity<Resource> downloadCleanedCsv(
+            @PathVariable UUID datasetId
+    ) {
+
+        return datasetService.downloadCleanedCsv(datasetId);
     }
 }

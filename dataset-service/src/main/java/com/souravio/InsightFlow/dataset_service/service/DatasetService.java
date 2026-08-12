@@ -9,15 +9,23 @@ import com.souravio.InsightFlow.dataset_service.entity.ProcessingJob;
 import com.souravio.InsightFlow.dataset_service.enums.DatasetStatus;
 import com.souravio.InsightFlow.dataset_service.enums.JobStatus;
 import com.souravio.InsightFlow.dataset_service.enums.OutboxStatus;
+import com.souravio.InsightFlow.dataset_service.exception.ResourceNotFoundException;
 import com.souravio.InsightFlow.dataset_service.parser.CsvFileParser;
 import com.souravio.InsightFlow.dataset_service.parser.CsvParseResult;
 import com.souravio.InsightFlow.dataset_service.repository.DatasetRepository;
 import com.souravio.InsightFlow.dataset_service.repository.OutboxEventRepository;
 import com.souravio.InsightFlow.dataset_service.repository.ProcessingJobRepository;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -177,4 +185,42 @@ public class DatasetService {
                 .createdAt(job.getCreatedAt())
                 .build();
     }
+
+
+  public ResponseEntity<Resource> downloadCleanedCsv(UUID datasetId) {
+
+    Dataset dataset =
+        datasetRepository
+            .findById(datasetId)
+            .orElseThrow(() -> new ResourceNotFoundException("Dataset not found: " + datasetId));
+
+    String cleanCsvPath = dataset.getCleanedCsvPath();
+
+    if (cleanCsvPath == null || cleanCsvPath.isBlank()) {
+      throw new ResourceNotFoundException(
+              "Cleaned CSV is not available for dataset: " + datasetId
+      );
+    }
+
+    Path filePath = Path.of(cleanCsvPath);
+
+    if (!Files.exists(filePath)) {
+      throw new ResourceNotFoundException(
+              "Cleaned CSV file not found: " + cleanCsvPath
+      );
+    }
+
+    Resource resource = new FileSystemResource(filePath);
+
+    return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("text/csv"))
+            .header(
+                    HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=\"" +
+                            datasetId +
+                            "-cleaned.csv\""
+            )
+            .contentLength(filePath.toFile().length())
+            .body(resource);
+  }
 }
