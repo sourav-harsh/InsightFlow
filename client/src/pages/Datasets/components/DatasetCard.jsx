@@ -4,7 +4,7 @@ import Badge, { STATUS_VARIANT } from "../../../utils/Badge";
 import ProgressBar from "../../../utils/ProgressBar";
 import { formatDateTime, formatNumber } from "../../../utils/format";
 
-export default function DatasetCard({ dataset }) {
+export default function DatasetCard({ dataset, summary }) {
   return (
     <article className="card card-pad transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex items-start justify-between gap-3">
@@ -15,7 +15,7 @@ export default function DatasetCard({ dataset }) {
           <div>
             <h3 className="text-sm font-semibold text-ink-900">{dataset.fileName}</h3>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-              <FiClock size={12} /> {formatDateTime(dataset.createdAt)}
+              <FiClock size={12} /> {formatDateTime(dataset.completedAt?dataset.completedAt:dataset.startedAt?dataset.startedAt:dataset.failedAt)}
             </p>
           </div>
         </div>
@@ -25,16 +25,16 @@ export default function DatasetCard({ dataset }) {
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-xl bg-slate-50 px-3 py-2">
           <p className="label">Rows</p>
-          <p className="font-bold text-ink-900">{formatNumber(dataset.totalRows)}</p>
+          <p className="font-bold text-ink-900">{formatNumber(summary.find(data=>data.datasetId === dataset.datasetId)?.rowCount)}</p>
         </div>
         <div className="rounded-xl bg-slate-50 px-3 py-2">
           <p className="label flex items-center gap-1"><FiColumns size={11} /> Columns</p>
-          <p className="font-bold text-ink-900">{formatNumber(dataset.totalColumns)}</p>
+          <p className="font-bold text-ink-900">{formatNumber(summary.find(data=>data.datasetId === dataset.datasetId)?.columnCount)}</p>
         </div>
       </div>
 
       <div className="mt-4">
-        <ProgressBar value={dataset.qualityScore ?? 0} label="Quality score" showLabel={dataset.qualityScore != null} />
+        <ProgressBar value={summary.find(data=>data.datasetId === dataset.datasetId)?.qualityScore ?? 0} label="Quality score" showLabel={summary.find(data=>data.datasetId === dataset.datasetId)?.qualityScore != null} />
       </div>
 
       <Link

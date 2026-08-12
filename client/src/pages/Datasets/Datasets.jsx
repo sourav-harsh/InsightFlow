@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import { Link } from "react-router-dom";
 import { FiSearch, FiUploadCloud } from "react-icons/fi";
-import { listDatasets } from "../../api/client";
+import {getDatasetSummary, listDatasets} from "../../api/client";
 import useApiResource from "../../utils/useApiResource";
 import PageHeader from "../../utils/PageHeader";
 import Loader from "../../utils/Loader";
@@ -11,12 +11,35 @@ import DatasetCard from "./components/DatasetCard";
 
 export default function Datasets() {
   const { data, loading, error, refetch } = useApiResource(() => listDatasets(), []);
+  const [summary,setSummary] = useState([]);
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(
     () => (data || []).filter((dataset) => dataset.fileName.toLowerCase().includes(query.trim().toLowerCase())),
     [data, query]
   );
+
+    useEffect(() => {
+        const fetchSummaries = async () => {
+            if (!data?.length) {
+                setSummary([]);
+                return;
+            }
+
+            const results = await Promise.all(
+                data.map((dataset) =>
+                    getDatasetSummary(dataset.datasetId)
+                )
+            );
+
+            const summary = results.flat();
+
+            setSummary(summary);
+        };
+
+        fetchSummaries();
+    }, [data]);
+
 
   return (
     <>
@@ -45,7 +68,7 @@ export default function Datasets() {
 
       {!loading && !error && (filtered.length ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((dataset) => <DatasetCard key={dataset.datasetId} dataset={dataset} />)}
+          {filtered.map((dataset) => <DatasetCard key={dataset.datasetId} dataset={dataset} summary={summary} />)}
         </div>
       ) : (
         <EmptyState

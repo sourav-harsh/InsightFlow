@@ -22,5 +22,7 @@ public class ProcessingJobResponse {
     private Instant completedAt;
     private Instant failedAt;
     private String errorMessage;
+    private Long totalRows;
+    private Integer totalColumns;
 
 }
