@@ -310,4 +310,47 @@ public class ColumnTypeDetector {
 
     return Math.round(value * 100.0) / 100.0;
   }
+
+  public boolean isValid(String value) {
+
+    // Missing value
+    if (value == null || value.trim().isEmpty()) {
+      return false;
+    }
+
+    String trimmed = value.trim();
+
+    // Email
+    if (isLikelyEmailColumn()) {
+      return isEmail(trimmed);
+    }
+
+    // Phone
+    if (isLikelyPhoneColumn()) {
+      return isPhone(trimmed);
+    }
+
+    // Date
+    if (isLikelyDateColumn()) {
+      return isDate(trimmed);
+    }
+
+    // Integer
+    if (isInteger(trimmed)) {
+      return true;
+    }
+
+    // Decimal
+    if (isDecimal(trimmed)) {
+      return true;
+    }
+
+    // Boolean
+    if (isBoolean(trimmed)) {
+      return true;
+    }
+
+    // String
+    return true;
+  }
 }

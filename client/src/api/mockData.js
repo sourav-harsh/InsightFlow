@@ -105,3 +105,32 @@ export const mockDatasets = [
     createdAt: "2026-08-11T13:02:00.505254Z",
   },
 ];
+
+const displayName = (email) =>
+  email
+    .split("@")[0]
+    .replace(/[._-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+export const mockAuth = {
+  login: (email) => ({
+    data: {
+      accessToken: `eyJhbGciOiJIUzI1NiJ9.mock-${btoa(email).replace(/=+$/, "")}-${Date.now()}`,
+      tokenType: "Bearer",
+      expiresIn: 3600,
+      user: { name: displayName(email), email, role: "Data Analyst" },
+    },
+    error: null,
+    timeStamp: new Date().toISOString(),
+  }),
+  register: (name, email) => ({
+    data: {
+      accessToken: `eyJhbGciOiJIUzI1NiJ9.mock-${btoa(email).replace(/=+$/, "")}-${Date.now()}`,
+      tokenType: "Bearer",
+      expiresIn: 3600,
+      user: { name: name || displayName(email), email, role: "Data Analyst" },
+    },
+    error: null,
+    timeStamp: new Date().toISOString(),
+  }),
+};

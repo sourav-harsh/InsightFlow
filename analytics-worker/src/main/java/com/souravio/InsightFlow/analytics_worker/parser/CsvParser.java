@@ -54,11 +54,26 @@ public class CsvParser {
 
         rowCount++;
 
+        boolean validRow = true;
+
         for (String header : headers) {
 
-          String value = record.isMapped(header) ? record.get(header) : null;
+          String value =
+                  record.isMapped(header)
+                          ? record.get(header)
+                          : null;
 
-          detectors.get(header).observe(value);
+          ColumnTypeDetector detector = detectors.get(header);
+
+          detector.observe(value);
+
+          if (!detector.isValid(value)) {
+            validRow = false;
+          }
+        }
+
+        if (validRow) {
+          // This row is clean
         }
       }
 

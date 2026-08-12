@@ -3,6 +3,8 @@ package com.souravio.InsightFlow.analytics_worker.consumer;
 import com.rabbitmq.client.Channel;
 import com.souravio.InsightFlow.analytics_worker.config.RabbitMQConfig;
 import com.souravio.InsightFlow.analytics_worker.dto.DatasetProcessingRequestedEvent;
+import com.souravio.InsightFlow.analytics_worker.parser.CsvCleanResult;
+import com.souravio.InsightFlow.analytics_worker.parser.CsvCleaner;
 import com.souravio.InsightFlow.analytics_worker.parser.CsvParseResult;
 import com.souravio.InsightFlow.analytics_worker.service.AnalyticsResultService;
 import com.souravio.InsightFlow.analytics_worker.service.CsvProcessingService;
@@ -30,6 +32,7 @@ public class DatasetProcessingConsumer {
   private final CsvProcessingService csvProcessingService;
   private final AnalyticsResultService analyticsResultService;
   private final RabbitTemplate rabbitTemplate;
+  private final CsvCleaner csvCleaner;
 
   @RabbitListener(queues = RabbitMQConfig.MAIN_QUEUE)
   public void consume(
@@ -109,7 +112,11 @@ public class DatasetProcessingConsumer {
     try {
 
       log.info("Processing file: {}", event.getStoragePath());
-      // 3. Parse CSV
+      // ==========================================
+      // 1. Parse CSV and generate analytics
+      // ==========================================
+
+
       CsvParseResult result = csvProcessingService.process(event.getStoragePath());
 
 
@@ -121,10 +128,32 @@ public class DatasetProcessingConsumer {
               result.getMissingValueCount()
       );
 
-      // 4. Save analytics result
+      // ==========================================
+      // 2. Save analytics result
+      // ==========================================
+
       analyticsResultService.saveResult(
               event.getDatasetId(),
               result
+      );
+
+      // ==========================================
+      // 3. Generate cleaned CSV
+      // ==========================================
+
+      CsvCleanResult cleanResult =
+              csvCleaner.clean(
+                      event.getStoragePath(),
+                      event.getDatasetId().toString()
+              );
+
+      log.info(
+              "Cleaned CSV generated successfully. datasetId={}, originalRows={}, cleanedRows={}, removedRows={}, path={}",
+              event.getDatasetId(),
+              cleanResult.getOriginalRowCount(),
+              cleanResult.getCleanedRowCount(),
+              cleanResult.getRemovedRowCount(),
+              cleanResult.getCleanedFilePath()
       );
     } catch (Exception exception) {
       throw new RuntimeException("Failed to process dataset", exception);
