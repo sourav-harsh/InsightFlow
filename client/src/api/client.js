@@ -182,3 +182,60 @@ export async function listDatasets() {
   }
   return request(`/api/v1/datasets/jobs`);
 }
+
+export async function downloadCleanCSV(datasetId) {
+  if (USE_MOCK) {
+    await delay(250);
+    return mockDatasets;
+  }
+
+  const token = getToken();
+
+  const response = await fetch(
+      `${BASE_URL}/api/v1/datasets/${datasetId}/download`,
+      {
+        method: "GET",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }
+  );
+
+  if (response.status === 401) {
+    clearAuth();
+    window.location.assign("/login");
+    throw new Error("Session expired. Please sign in again.");
+  }
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+
+    throw new Error(
+        payload?.error?.message ||
+        payload?.error ||
+        `Download failed (${response.status})`
+    );
+  }
+
+  return response.blob();
+}
+
+export const handleDownload = async (datasetId) => {
+  try {
+    const blob = await downloadCleanCSV(datasetId);
+
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${datasetId}-cleaned.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Failed to download CSV:", error);
+  }
+};

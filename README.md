@@ -79,10 +79,336 @@ Show
 ```mermaid
 flowchart TD
  A[React Frontend] --> B[Spring API Gateway] ---> C[Authentication]--->F 
- B --> D[Upload Service]-->F[PostgresSQL]
+ B --> D[Dataset Service]-->F[PostgresSQL]
  B --> E[Analytics API]--->F
 F-->G[Outbox Table]--> H[Outbox Publisher]--> I[RabbitMQ]
 I-->J[Processing Worker]--> K[Analytics DB]--> L[Redis]---> M[Dashboard API's]
-I--> N[Report Worker]--> O[PDF Storage]
-I ---> P[Notification Worker]--> Q[Email/Websocket]
+I--> N[Report Worker]--> O[Clean CSV Download]
+```
+
+```text
+UPDATE
+WHERE id = ?
+AND status = PENDING
+```
+
+## First delivery
+
+```text 
+
+DB:
+
+PENDING
+   │
+   ▼
+UPDATE ... WHERE status=PENDING
+   │
+   ▼
+1 row updated
+   │
+   ▼
+PROCESSING
+```
+
+## Duplicate delivery
+
+```text
+
+DB:
+
+PROCESSING
+   │
+   ▼
+UPDATE ... WHERE status=PENDING
+   │
+   ▼
+0 rows updated
+
+```
+
+
+```text
+Retry Exchange
+      │
+      ▼
+Retry Queue
+      │
+      │ TTL = 5 seconds
+      ▼
+Main Exchange
+      │
+      ▼
+Main Queue
+```
+
+## RabbitMQ message
+
+```text
+RabbitMQ message
+       │
+       ▼
+Try INSERT event_id
+       │
+       ├── INSERT succeeds
+       │       ↓
+       │    First delivery
+       │       ↓
+       │    Process
+       │
+       └── INSERT fails (duplicate)
+               ↓
+          Already claimed
+               ↓
+             ACK
+```
+
+
+```text
+
+              RabbitMQ Event
+                    │
+                    ▼
+             processed_events
+                    │
+              event_id exists?
+               /          \
+             YES           NO
+              │             │
+              ▼             ▼
+            ACK          Claim Event
+             │              │
+             │              ▼
+             │       processing_jobs
+             │              │
+             │              ▼
+             │        PENDING → PROCESSING
+             │              │
+             │              ▼
+             │          Process CSV
+             │
+             ▼
+           Ignore
+```
+
+```text
+                       RabbitMQ
+                          │
+                          ▼
+                     Main Queue
+                          │
+                          ▼
+                    Analytics Worker
+                          │
+                          ▼
+                  processed_events
+                          │
+                  UNIQUE(event_id)
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+         New event                Duplicate
+              │                       │
+              ▼                       ▼
+          Claim it                  ACK
+              │
+              ▼
+         Processing Job
+              │
+              ▼
+          Process CSV
+```
+
+### RabbitMQ topology
+
+```text
+                    ┌──────────────────────┐
+                    │  Main Exchange       │
+                    │  insightflow.dataset │
+                    │  .exchange           │
+                    └──────────┬───────────┘
+                               │
+                    dataset.processing.requested
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │     Main Queue       │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                         Worker
+                           │
+                           Main Queue
+                            ↓
+                        Worker
+                            ↓
+                        FAIL
+                            ↓
+                        Retry 1
+                            ↓
+                        FAIL
+                            ↓
+                        Retry 2
+                            ↓
+                        FAIL
+                            ↓
+                        Retry 3
+                            ↓
+                         FAILURE
+                           │
+                           ▼
+                    ┌──────────────────────┐
+                    │  Retry Exchange      │
+                    │  insightflow.dataset │
+                    │  .retry.exchange     │
+                    └──────────┬───────────┘
+                               │
+                    dataset.processing.retry
+                               │
+                               ▼
+                              FAIL
+                                  │
+                      ┌───────────┴───────────┐
+                      │                       │
+                  attempts < 3            attempts >= 3
+                      │                       │
+                      ▼                       ▼
+           ┌──────────────────────┐          DLQ
+           │     Retry Queue      │
+           │                      │
+           │ TTL = 5 seconds      │
+           └──────────┬───────────┘
+                      │
+                after 5 seconds
+                      │
+                      ▼
+           Main Exchange
+                      │
+                      ▼
+                Main Queue           
+
+```
+
+### Process the CSV
+
+```text
+
+RabbitMQ
+   │
+   ▼
+DatasetProcessingConsumer
+   │
+   ├── 1. Claim/idempotency check
+   │
+   ├── 2. Mark job PROCESSING
+   │
+   ├── 3. Read CSV from storagePath
+   │
+   ├── 4. Parse rows
+   │
+   ├── 5. Calculate analytics
+   │      ├── row count
+   │      ├── column count
+   │      ├── missing values
+   │      ├── numeric statistics
+   │      └── basic distributions
+   │
+   ├── 6. Store analytics result
+   │
+   ├── 7. Mark job COMPLETED
+   │
+   └── 8. ACK RabbitMQ message
+
+```
+
+## Redis
+
+ ```text
+ Client
+   │
+   ▼
+API Gateway
+   │
+   ▼
+Analytics API
+   │
+   ├── Check Redis
+   │      │
+   │      ├── HIT ──────► return cached result
+   │      │
+   │      └── MISS
+   │            │
+   │            ▼
+   │        PostgreSQL
+   │            │
+   │            ▼
+   │        Store in Redis
+   │            │
+   │            ▼
+   │        Return result
+ ```
+
+### Why these three counts?
+
+```text
+total rows = missing + invalid + valid
+```
+#### A simple and explainable formula would be:
+
+```text
+valid values = total cells - missing values - invalid values
+
+quality score =
+(valid values / total cells) × 100
+```
+
+
+### Architecture
+
+```text
+                    ┌───────────────┐
+                    │   API Gateway │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Dataset/API   │
+                    │    Service    │
+                    └───────┬───────┘
+                            │
+                            │ RabbitMQ
+                            ▼
+                    ┌───────────────┐
+                    │   Analytics   │
+                    │    Worker     │
+                    └───────┬───────┘
+                            │
+              ┌─────────────┼─────────────┐
+              ▼             ▼             ▼
+          CSV Parser   Data Quality   Statistics
+              │             │             │
+              └─────────────┼─────────────┘
+                            ▼
+                    ┌───────────────┐
+                    │ PostgreSQL    │
+                    │ JSONB Result  │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    Analytics API
+                            │
+                            ▼
+                       Dashboard
+
+```
+
+
+## Insightflow services
+
+```text
+InsightFlow/
+├── api-gateway/
+├── auth-service/
+├── dataset-service/
+├── analytics-worker/
+└── analytics-service/    
 ```
