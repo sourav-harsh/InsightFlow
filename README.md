@@ -23,25 +23,26 @@ The architecture emphasizes reliability and scalability through:
 1. [Overview](#overview)
 2. [Problem Statement](#problem-statement)
 3. [Goals and Requirements](#goals-and-requirements)
-4. [Architecture](#architecture)
-5. [Service Responsibilities](#service-responsibilities)
-6. [End-to-End Data Flow](#end-to-end-data-flow)
-7. [Authentication and API Gateway](#authentication-and-api-gateway)
-8. [Dataset Ingestion](#dataset-ingestion)
-9. [Transactional Outbox](#transactional-outbox)
-10. [RabbitMQ Messaging](#rabbitmq-messaging)
-11. [Idempotency](#idempotency)
-12. [Retry and Dead-Letter Handling](#retry-and-dead-letter-handling)
-13. [Analytics Processing](#analytics-processing)
-14. [Data Quality](#data-quality)
-15. [Redis Caching](#redis-caching)
-16. [Rate Limiting](#rate-limiting)
-17. [Database Ownership](#database-ownership)
-18. [API Reference](#api-reference)
-19. [Project Structure](#project-structure)
-20. [Non-Functional Requirements](#non-functional-requirements)
-21. [Failure Scenarios](#failure-scenarios)
-22. [Deployment](#deployment)
+4. [Getting Started](#getting-started)
+5. [Architecture](#architecture)
+6. [Service Responsibilities](#service-responsibilities)
+7. [End-to-End Data Flow](#end-to-end-data-flow)
+8. [Authentication and API Gateway](#authentication-and-api-gateway)
+9. [Dataset Ingestion](#dataset-ingestion)
+10. [Transactional Outbox](#transactional-outbox)
+11. [RabbitMQ Messaging](#rabbitmq-messaging)
+12. [Idempotency](#idempotency)
+13. [Retry and Dead-Letter Handling](#retry-and-dead-letter-handling)
+14. [Analytics Processing](#analytics-processing)
+15. [Data Quality](#data-quality)
+16. [Redis Caching](#redis-caching)
+17. [Rate Limiting](#rate-limiting)
+18. [Database Ownership](#database-ownership)
+19. [API Reference](#api-reference)
+20. [Project Structure](#project-structure)
+21. [Non-Functional Requirements](#non-functional-requirements)
+22. [Failure Scenarios](#failure-scenarios)
+23. [Deployment](#deployment)
 
 ---
 
@@ -179,6 +180,25 @@ The dashboard can expose:
 - Completed reports
 
 ---
+
+# Getting Started
+1. First you need to have **Docker** installed. Then run the ```docker compose up --build -d ``` in the root directory(Which will run the services in detached mode.).
+2. Frontend will launch on - ``` http://localhost:5170```.
+3. You need to register yourself using **create an account**.
+4. You can upload a dataset.
+5. You can view the analytics.
+6. You can download the clean CSV.
+7. You can view the dashboard.
+
+# Ports
+| Service    | Port |
+|------------|------|
+| Frontend   | 5170 |
+| Backend    | 8080 |
+| RabbitMQ   | 5672 |
+| Redis      | 6379 |
+| PostgreSQL | 5433 |
+
 
 # Architecture
 

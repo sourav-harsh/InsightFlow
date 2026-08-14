@@ -41,7 +41,7 @@ export default function DatasetDetail() {
                 />
                 <button
                     className={datasetId ? "hover:text-white hover:bg-brand-400 transition px-5 py-3 rounded-xl bg-brand-100 text-brand-600 flex items-center gap-1.5" : "hidden"}
-                    onClick={() => handleDownload(datasetId)}>Download Report <MdOutlineFileDownload/></button>
+                    onClick={() => handleDownload(datasetId)}>Download Clean CSV <MdOutlineFileDownload/></button>
             </div>
             {error && <ErrorState message={error} onRetry={() => {
                 analytics.refetch();

@@ -1,23 +1,18 @@
 package com.souravio.InsightFlow.auth_service.exception;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
 
 @Data
+@Builder
 public class ApiError {
 
-    private LocalDateTime timeStamp;
-    private String error;
-    private HttpStatus statusCode;
+    private String message;
+    private HttpStatus status;
+    private List<String> subErrors;
 
-    public ApiError() {
-        this.timeStamp = LocalDateTime.now();
-    }
-
-    public ApiError(String error, HttpStatus statusCode) {
-        this();
-        this.error = error;
-        this.statusCode = statusCode;
-    }
 }

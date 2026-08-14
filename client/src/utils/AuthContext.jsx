@@ -21,10 +21,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(async (firstName,lastName, email, password) => {
-     const session = await registerUser({ firstName, lastName, email, password });
-    saveAuth(session);
-    setAuth(session);
-    return session;
+      const session = await registerUser({ firstName, lastName, email, password });
+      saveAuth(session);
+      setAuth(session);
+      return session;
   }, []);
 
   const logout = useCallback(() => {

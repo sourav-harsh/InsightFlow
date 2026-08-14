@@ -69,9 +69,17 @@ async function request(path, { method = "GET", body, headers = {}, auth = true }
 
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(payload?.error?.message || payload?.error || `Request failed (${response.status})`);
+    const apiError = payload?.error;
+
+    const error = new Error(
+        apiError?.message || `Request failed (${response.status})`
+    );
+
+    error.details = apiError;
+
+    throw error;
   }
-  if (payload?.error) throw new Error(String(payload.error));
+  // if (payload?.error) throw new Error(String(payload.error));
   return payload?.data;
 }
 
