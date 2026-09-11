@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.ToString;
 
 @Data
 public class SignupRequestDTO {
@@ -37,5 +38,6 @@ public class SignupRequestDTO {
             regexp = "^(?=.*[0-9])(?=.*[a-zA-Z])(?=.*[@#$%^&+=!_]).*$",
             message = "Password must contain at least one letter, one number, and one special character"
     )
+    @ToString.Exclude
     private String password;
 }

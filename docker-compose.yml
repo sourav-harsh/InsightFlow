@@ -255,12 +255,87 @@ services:
     networks:
       - insight-network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.3
+    container_name: elasticsearch
+
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+
+    ports:
+      - "9200:9200"
+
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fs http://localhost:9200/_cluster/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    networks:
+      - insight-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:9.1.3
+    container_name: logstash
+
+    ports:
+      - "5044:5044"
+
+    volumes:
+      - ./elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
+
+    environment:
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - insight-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.1.3
+    container_name: kibana
+
+    ports:
+      - "5601:5601"
+
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - insight-network
+
+
 volumes:
   postgres-data:
   rabbitmq-data:
   redis-data:
   dataset-uploads:
   uploads_data:
+  elasticsearch-data:
 
 networks:
 
