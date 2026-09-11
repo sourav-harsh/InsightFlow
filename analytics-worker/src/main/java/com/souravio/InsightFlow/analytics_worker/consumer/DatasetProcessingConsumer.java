@@ -12,6 +12,9 @@ import com.souravio.InsightFlow.analytics_worker.service.CsvProcessingService;
 import com.souravio.InsightFlow.analytics_worker.service.ProcessedEventService;
 import com.souravio.InsightFlow.analytics_worker.service.ProcessingJobService;
 import java.util.UUID;
+
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -34,8 +37,9 @@ public class DatasetProcessingConsumer {
   private final AnalyticsResultService analyticsResultService;
   private final RabbitTemplate rabbitTemplate;
   private final CsvCleaner csvCleaner;
+  private final ObservationRegistry observationRegistry;
 
-  @RabbitListener(queues = RabbitMQConfig.MAIN_QUEUE)
+  @RabbitListener(queues = RabbitMQConfig.MAIN_QUEUE,  containerFactory = "rabbitListenerContainerFactory")
   public void consume(
       String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag)
       throws Exception {
@@ -108,78 +112,96 @@ public class DatasetProcessingConsumer {
     }
   }
 
-  private void processDataset(DatasetProcessingRequestedEvent event) {
+  private void processDataset(
+          DatasetProcessingRequestedEvent event) {
 
-    try {
+    Observation observation =
+            Observation.createNotStarted(
+                    "dataset.processing",
+                    observationRegistry
+            );
 
-      log.info("Processing file: {}", event.getStoragePath());
-      // ==========================================
-      // 1. Parse CSV and generate analytics
-      // ==========================================
+    observation.observe(() -> {
 
+      try {
 
-      CsvParseResult result = csvProcessingService.process(event.getStoragePath());
+        log.info(
+                "Processing file: {}",
+                event.getStoragePath()
+        );
 
+        CsvParseResult result =
+                csvProcessingService.process(
+                        event.getStoragePath()
+                );
 
-      log.info(
-              "CSV processed successfully. datasetId={}, rows={}, columns={}, missingValues={}",
-              event.getDatasetId(),
-              result.getRowCount(),
-              result.getColumnCount(),
-              result.getMissingValueCount()
-      );
+        log.info(
+                "CSV processed successfully. datasetId={}, rows={}, columns={}, missingValues={}",
+                event.getDatasetId(),
+                result.getRowCount(),
+                result.getColumnCount(),
+                result.getMissingValueCount()
+        );
 
-      // ==========================================
-      // 2. Save analytics result
-      // ==========================================
+        analyticsResultService.saveResult(
+                event.getDatasetId(),
+                result
+        );
 
-      analyticsResultService.saveResult(
-              event.getDatasetId(),
-              result
-      );
+        CsvCleanResult cleanResult =
+                csvCleaner.clean(
+                        event.getStoragePath(),
+                        event.getDatasetId().toString()
+                );
 
-      // ==========================================
-      // 3. Generate cleaned CSV
-      // ==========================================
+        log.info(
+                "Cleaned CSV generated successfully. datasetId={}, originalRows={}, cleanedRows={}, removedRows={}, path={}",
+                event.getDatasetId(),
+                cleanResult.getOriginalRowCount(),
+                cleanResult.getCleanedRowCount(),
+                cleanResult.getRemovedRowCount(),
+                cleanResult.getCleanedFilePath()
+        );
 
-      CsvCleanResult cleanResult =
-              csvCleaner.clean(
-                      event.getStoragePath(),
-                      event.getDatasetId().toString()
-              );
+        DatasetCleaningCompletedEvent completedEvent =
+                DatasetCleaningCompletedEvent.builder()
+                        .eventId(UUID.randomUUID())
+                        .datasetId(event.getDatasetId())
+                        .jobId(event.getJobId())
+                        .originalStoragePath(event.getStoragePath())
+                        .cleanedStoragePath(
+                                cleanResult.getCleanedFilePath()
+                        )
+                        .originalRowCount(
+                                cleanResult.getOriginalRowCount()
+                        )
+                        .cleanedRowCount(
+                                cleanResult.getCleanedRowCount()
+                        )
+                        .removedRowCount(
+                                cleanResult.getRemovedRowCount()
+                        )
+                        .build();
 
-      log.info(
-              "Cleaned CSV generated successfully. datasetId={}, originalRows={}, cleanedRows={}, removedRows={}, path={}",
-              event.getDatasetId(),
-              cleanResult.getOriginalRowCount(),
-              cleanResult.getCleanedRowCount(),
-              cleanResult.getRemovedRowCount(),
-              cleanResult.getCleanedFilePath()
-      );
+        String completedMessage =
+                objectMapper.writeValueAsString(
+                        completedEvent
+                );
 
-      DatasetCleaningCompletedEvent completedEvent =
-              DatasetCleaningCompletedEvent.builder()
-                      .eventId(UUID.randomUUID())
-                      .datasetId(event.getDatasetId())
-                      .jobId(event.getJobId())
-                      .originalStoragePath(event.getStoragePath())
-                      .cleanedStoragePath(cleanResult.getCleanedFilePath())
-                      .originalRowCount(cleanResult.getOriginalRowCount())
-                      .cleanedRowCount(cleanResult.getCleanedRowCount())
-                      .removedRowCount(cleanResult.getRemovedRowCount())
-                      .build();
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.CLEANED_EXCHANGE,
+                RabbitMQConfig.CLEANED_ROUTING_KEY,
+                completedMessage
+        );
 
-      String completedMessage =
-              objectMapper.writeValueAsString(completedEvent);
+      } catch (Exception exception) {
 
-      rabbitTemplate.convertAndSend(
-              RabbitMQConfig.CLEANED_EXCHANGE,
-              RabbitMQConfig.CLEANED_ROUTING_KEY,
-              completedMessage
-      );
-    } catch (Exception exception) {
-      throw new RuntimeException("Failed to process dataset", exception);
-    }
+        throw new RuntimeException(
+                "Failed to process dataset",
+                exception
+        );
+      }
+    });
   }
 
   private void handleFailure(

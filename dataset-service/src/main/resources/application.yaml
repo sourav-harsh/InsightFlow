@@ -6,7 +6,7 @@ spring:
     name: dataset-service
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/dataset_db}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/dataset_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
@@ -24,10 +24,17 @@ spring:
       max-request-size: 100MB
 
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+    template:
+      observation-enabled: true
+
+    listener:
+      simple:
+        observation-enabled: true
 
 management:
   endpoints:
@@ -38,6 +45,14 @@ management:
   endpoint:
     health:
       show-details: always
+
+  tracing:
+    sampling:
+      probability: 1.0
+
+    export:
+      zipkin:
+        endpoint: ${MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
 
 insightflow:
   storage:

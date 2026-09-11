@@ -5,6 +5,8 @@ import com.souravio.InsightFlow.dataset_service.dto.event.DatasetCleaningComplet
 import com.souravio.InsightFlow.dataset_service.entity.Dataset;
 import com.souravio.InsightFlow.dataset_service.repository.DatasetRepository;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,42 +22,70 @@ public class DatasetCleaningCompletedConsumer {
 
     private final DatasetRepository datasetRepository;
     private final ObjectMapper objectMapper;
+    private final ObservationRegistry observationRegistry;
 
     @RabbitListener(
-            queues = RabbitMQConfig.CLEANED_QUEUE
+            queues = RabbitMQConfig.CLEANED_QUEUE,
+            containerFactory = "rabbitListenerContainerFactory"
     )
     @Transactional
     public void consume(String message) {
 
-        log.info("Received cleaning completed event: {}", message);
-
-        DatasetCleaningCompletedEvent event =
-                objectMapper.readValue(message, DatasetCleaningCompletedEvent.class);
-        log.info(
-                "Received dataset cleaning completed event. datasetId={}, cleanedPath={}",
-                event.getDatasetId(),
-                event.getCleanedStoragePath()
+        Observation observation = Observation.createNotStarted(
+                "dataset.cleaning.completed",
+                observationRegistry
         );
 
-        Dataset dataset = datasetRepository
-                .findById(event.getDatasetId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Dataset not found: " + event.getDatasetId()
-                        )
-                );
+        observation.observe(() -> {
 
-        dataset.setCleanedCsvPath(event.getCleanedStoragePath());
-        dataset.setCleanedRowCount(event.getCleanedRowCount());
-        dataset.setRemovedRowCount(event.getRemovedRowCount());
+            log.info(
+                    "Received cleaning completed event: {}",
+                    message
+            );
 
-        datasetRepository.save(dataset);
+            DatasetCleaningCompletedEvent event =
+                    objectMapper.readValue(
+                            message,
+                            DatasetCleaningCompletedEvent.class
+                    );
 
-        log.info(
-                "Dataset updated with cleaned CSV. datasetId={}, cleanedRows={}, removedRows={}",
-                event.getDatasetId(),
-                event.getCleanedRowCount(),
-                event.getRemovedRowCount()
-        );
+            log.info(
+                    "Received dataset cleaning completed event. " +
+                            "datasetId={}, cleanedPath={}",
+                    event.getDatasetId(),
+                    event.getCleanedStoragePath()
+            );
+
+            Dataset dataset = datasetRepository
+                    .findById(event.getDatasetId())
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Dataset not found: " +
+                                            event.getDatasetId()
+                            )
+                    );
+
+            dataset.setCleanedCsvPath(
+                    event.getCleanedStoragePath()
+            );
+
+            dataset.setCleanedRowCount(
+                    event.getCleanedRowCount()
+            );
+
+            dataset.setRemovedRowCount(
+                    event.getRemovedRowCount()
+            );
+
+            datasetRepository.save(dataset);
+
+            log.info(
+                    "Dataset updated with cleaned CSV. " +
+                            "datasetId={}, cleanedRows={}, removedRows={}",
+                    event.getDatasetId(),
+                    event.getCleanedRowCount(),
+                    event.getRemovedRowCount()
+            );
+        });
     }
 }
